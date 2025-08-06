@@ -1,0 +1,64 @@
+% TikZ code for MPI workflow diagram
+% Add to preamble: \usepackage{tikz}
+% \usetikzlibrary{shapes,arrows,positioning,calc}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    process/.style={rectangle, draw, fill=blue!20, text width=3cm, text centered, minimum height=1cm},
+    worker/.style={rectangle, draw, fill=green!20, text width=2.5cm, text centered, minimum height=0.8cm},
+    data/.style={rectangle, draw, fill=yellow!20, text width=2cm, text centered, minimum height=0.6cm},
+    arrow/.style={->, thick},
+    comm/.style={<->, thick, red}
+]
+
+% Master process
+\node[process] (master) {Master\\Process\\(Rank 0)};
+
+% Data structures
+\node[data, above=0.5cm of master] (puzzle) {Puzzle\\Data};
+\node[data, below=0.5cm of master] (workunits) {Work\\Units};
+
+% Worker processes
+\node[worker, right=3cm of master] (worker1) {Worker 1};
+\node[worker, below=0.3cm of worker1] (worker2) {Worker 2};
+\node[worker, below=0.3cm of worker2] (worker3) {Worker 3};
+\node[worker, below=0.3cm of worker3] (workern) {Worker N};
+
+% Solution box
+\node[data, below=2cm of workunits] (solution) {Solution};
+
+% Arrows - Initialization
+\draw[arrow] (puzzle) -- (master) node[midway, left] {\footnotesize read};
+\draw[arrow] (master) -- (workunits) node[midway, left] {\footnotesize generate};
+
+% Communication arrows
+\draw[comm] (master.east) -- (worker1.west) node[midway, above] {\footnotesize work request};
+\draw[comm] (master.east) -- (worker2.west);
+\draw[comm] (master.east) -- (worker3.west);
+\draw[comm] (master.east) -- (workern.west);
+
+% Solution found
+\draw[arrow, green, thick] (worker2.south) |- (solution) node[near start, right] {\footnotesize solution found};
+
+% Labels for communication protocol
+\node[text width=3cm, right=0.5cm of worker1] (protocol) {
+    \footnotesize
+    Protocol:\\
+    1. Request work\\
+    2. Receive unit\\
+    3. Process\\
+    4. Report result
+};
+
+% Phase labels
+\node[above=2cm of puzzle] {\textbf{MPI Master-Worker Workflow}};
+
+% Time flow
+\draw[arrow, thick, gray] ([xshift=-1.5cm]puzzle.west) -- ([xshift=-1.5cm]solution.west) node[midway, left, rotate=90] {Time};
+
+\end{tikzpicture}
+\caption{MPI Master-Worker communication pattern. The master generates work units and distributes them on demand to workers.}
+\label{fig:mpi_workflow}
+\end{figure}

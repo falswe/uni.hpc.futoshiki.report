@@ -1,7 +1,101 @@
-# Example usage:
-# ./submit_job.sh mpi puzzles/9x9_hard_3.txt 16
+#!/bin/bash
+# submit_job.sh - Utility script to submit Futoshiki solver jobs
 
-# This will submit jobs/futoshiki_mpi.pbs with the
-# following variables and dynamically generated resources:
-# -v PUZZLE_FILE="puzzles/9x9_hard_3.txt",NPROCS="16"
-# -l select=16:ncpus=1:mem=2gb
+# Function to display usage information
+usage() {
+    echo "Usage: $0 <job_type> <puzzle_file> [num_procs_or_threads]"
+    echo ""
+    echo "Job types:"
+    echo "  seq            - Run sequential solver"
+    echo "  mpi            - Run MPI solver with specified processes"
+    echo "  omp            - Run OpenMP solver with specified threads"
+    echo "  hybrid         - Run Hybrid MPI+OpenMP solver"
+    echo "  scaling_mpi    - Run MPI performance scaling tests"
+    echo "  scaling_omp    - Run OpenMP performance scaling tests"
+    echo "  scaling_hybrid - Run Hybrid performance scaling tests"
+    exit 1
+}
+
+# Parse command line arguments
+JOB_TYPE=$1
+PUZZLE_FILE=$2
+NPROCS=$3
+
+case $JOB_TYPE in
+    mpi)
+        if [ -z "$PUZZLE_FILE" ] || [ -z "$NPROCS" ]; then
+            echo "Error: Puzzle file and process count required"
+            usage
+        fi
+        
+        # MPI needs N nodes, 1 core per node
+        RESOURCES="select=${NPROCS}:ncpus=1:mem=8gb"
+        
+        echo "Submitting MPI job for $PUZZLE_FILE"
+        echo "Processes: $NPROCS"
+        echo "Resources: $RESOURCES"
+        
+        qsub -l "$RESOURCES" \
+             -v PUZZLE_FILE="$PUZZLE_FILE",NPROCS="$NPROCS" \
+             jobs/mpi.pbs
+        ;;
+        
+    omp)
+        if [ -z "$PUZZLE_FILE" ] || [ -z "$NPROCS" ]; then
+            echo "Error: Puzzle file and thread count required"
+            usage
+        fi
+        
+        # OpenMP needs N cores on a single node
+        RESOURCES="select=1:ncpus=${NPROCS}:mem=8gb"
+        
+        echo "Submitting OpenMP job for $PUZZLE_FILE"
+        echo "Threads: $NPROCS"
+        echo "Resources: $RESOURCES"
+        
+        qsub -l "$RESOURCES" \
+             -v PUZZLE_FILE="$PUZZLE_FILE",NPROCS="$NPROCS" \
+             jobs/omp.pbs
+        ;;
+        
+    hybrid)
+        if [ $# -ne 4 ]; then
+            echo "Error: Need MPI processes and OMP threads"
+            usage
+        fi
+        MPI_PROCS=$3
+        OMP_THREADS=$4
+        
+        # Hybrid needs MPI_PROCS nodes with OMP_THREADS cores each
+        RESOURCES="select=${MPI_PROCS}:ncpus=${OMP_THREADS}:mem=8gb"
+        
+        echo "Submitting Hybrid job for $PUZZLE_FILE"
+        echo "MPI Processes: $MPI_PROCS"
+        echo "OMP Threads: $OMP_THREADS"
+        echo "Total cores: $((MPI_PROCS * OMP_THREADS))"
+        echo "Resources: $RESOURCES"
+        
+        qsub -l "$RESOURCES" \
+             -v PUZZLE_FILE="$PUZZLE_FILE",MPI_PROCS="$MPI_PROCS",OMP_THREADS="$OMP_THREADS" \
+             jobs/hybrid.pbs
+        ;;
+        
+    scaling_*)
+        if [ -z "$PUZZLE_FILE" ]; then
+            echo "Error: Puzzle file required for scaling test"
+            usage
+        fi
+        echo "Submitting ${JOB_TYPE} test for $PUZZLE_FILE..."
+        qsub -v PUZZLE_FILE="$PUZZLE_FILE" jobs/${JOB_TYPE}.pbs
+        ;;
+        
+    *)
+        echo "Error: Unknown job type '$JOB_TYPE'"
+        usage
+        ;;
+esac
+
+echo ""
+echo "Job submitted successfully!"
+echo "Check status with: qstat -u $USER"
+echo "View output with: tail -f futoshiki_*.o*"

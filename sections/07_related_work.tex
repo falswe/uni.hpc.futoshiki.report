@@ -1,0 +1,40 @@
+\section{Related Work}
+Our work builds upon and extends research in several areas: constraint satisfaction algorithms, parallel computing for combinatorial problems, and puzzle-solving techniques.
+
+\subsection{Constraint Satisfaction and Propagation}
+The foundation of our approach lies in constraint propagation techniques. Norvig's influential work on Sudoku solving \cite{NorvigSudoku} demonstrated the power of constraint propagation combined with search, achieving dramatic speedups over naive backtracking. Our pre-coloring phase extends these ideas specifically for Futoshiki's inequality constraints.
+
+The transformation of Futoshiki into a list coloring problem, as proposed by Şen and Diner \cite{Sen2024Futoshiki}, provides the theoretical foundation for our implementation. Their work showed that viewing the puzzle through the lens of graph coloring enables more sophisticated pruning strategies. We extend their sequential algorithm with parallel execution while preserving the correctness guarantees.
+
+Colbourn's seminal work \cite{Colbourn1984} on the complexity of Latin Square completion established the NP-completeness of the problem class, motivating the need for efficient heuristics and parallel approaches. Haraguchi and Ono \cite{Haraguchi2014} further analyzed the approximability of Latin Square completion puzzles, providing insights into the theoretical limits of polynomial-time algorithms.
+
+\subsection{Parallel Backtracking and Search}
+Parallel constraint satisfaction has been extensively studied, with various approaches proposed for distributing the search space. The book by Pacheco \cite{Pacheco2011} provides comprehensive coverage of parallel programming patterns, including the master-worker paradigm we employ. However, most existing work uses static work distribution, whereas our dynamic multi-level approach better handles the irregular search space of Futoshiki.
+
+Research on parallel backtracking typically focuses on either shared-memory or distributed-memory systems in isolation. Our contribution lies in effectively combining both paradigms and demonstrating that hybrid approaches can outperform single-paradigm solutions for irregular workloads.
+
+\subsection{MPI and OpenMP for Irregular Problems}
+The MPI standard \cite{MPIForum2021} and OpenMP specification \cite{OpenMP2020} provide the foundation for our parallel implementations. Gropp et al. \cite{Gropp1999} discuss various MPI programming patterns, including the master-worker model we adapt for dynamic load balancing.
+
+Rabenseifner et al. \cite{Rabenseifner2009} specifically address hybrid MPI/OpenMP programming, analyzing the benefits and challenges of combining both paradigms. Their work on multi-core clusters directly influenced our hybrid implementation design. We extend their findings by demonstrating that careful management of task generation factors at both levels is crucial for optimal performance.
+
+\subsection{Puzzle Solving Algorithms}
+Beyond Sudoku, various researchers have tackled different puzzle types with parallel algorithms. The general approach of combining constraint propagation with parallel search has proven effective across multiple domains. However, most work focuses on puzzles with uniform constraints (like Sudoku's boxes), whereas Futoshiki's arbitrary inequality constraints present unique challenges.
+
+Our work differs from existing puzzle solvers in several key aspects:
+\begin{itemize}
+    \item \textbf{Multi-paradigm approach:} We systematically compare three parallelization strategies
+    \item \textbf{Dynamic depth calculation:} Our work generation adapts to both puzzle difficulty and available parallelism
+    \item \textbf{Configurable granularity:} The task factor mechanism allows performance tuning without code changes
+    \item \textbf{Comprehensive evaluation:} We provide detailed analysis of both strong and weak scaling
+\end{itemize}
+
+\subsection{Load Balancing in Parallel Computing}
+Load balancing for irregular problems remains an active research area. Static approaches suffer from load imbalance when work units have varying difficulty, while dynamic approaches incur communication overhead. Our solution strikes a balance by generating sufficient work units upfront (based on the calculated depth) while using on-demand distribution to handle variability.
+
+The concept of oversubscription—creating more tasks than workers—is well-established in parallel computing. Our contribution is the systematic study of the task generation factor's impact on performance, showing that 4-8× oversubscription optimally balances parallelism with overhead for constraint satisfaction problems.
+
+\subsection{High-Performance Computing for AI}
+The intersection of HPC and artificial intelligence has gained significant attention. While much focus is on machine learning, combinatorial optimization and constraint satisfaction remain important applications. Our work demonstrates that traditional AI techniques like backtracking can benefit substantially from modern parallel computing infrastructure.
+
+The scalability results we achieve (up to 28× speedup on 64 cores) are competitive with other parallel constraint solvers, while our modular design facilitates adaptation to other problems. This positions our framework as a valuable contribution to both the HPC and AI communities.

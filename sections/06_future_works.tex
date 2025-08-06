@@ -1,8 +1,68 @@
-\section{Future Works}
-While our solver is both robust and efficient, several avenues for future improvement exist:
+\section{Future Work}
+While our solver demonstrates strong performance across multiple paradigms, several avenues for improvement and extension remain:
+
+\subsection{Algorithmic Enhancements}
 \begin{itemize}
-    \item \textbf{Hybrid MPI+OpenMP Model:} The current model uses one process per core. A hybrid model could be developed where each MPI worker process uses multiple threads (via OpenMP) to solve its assigned work unit. This could reduce inter-process communication overhead and may be more efficient on modern multi-core node architectures.
-    \item \textbf{Dynamic Load Balancing:} The master currently distributes a static pool of work units. A more dynamic "work stealing" model could be implemented, where idle workers request work from busy ones. This would better handle cases where some initial work units are much harder to solve than others.
-    \item \textbf{Heuristic Work Ordering:} The master could analyze the generated work units and distribute the ones that seem most constrained (and thus most likely to fail fast or lead to a solution) first. This could help prune the global search tree more quickly.
-    \item \textbf{Application to Other Problems:} The core framework of pre-coloring followed by a parallel master-worker search could be adapted to solve other Latin Square-type puzzles, such as Sudoku, or even other constraint satisfaction problems.
+    \item \textbf{Variable Ordering Heuristics:} Implement most-constrained-variable (MCV) and minimum-remaining-values (MRV) heuristics to select cells more intelligently during backtracking.
+    
+    \item \textbf{Arc Consistency:} Extend constraint propagation to AC-3 or higher levels of consistency for more aggressive pruning.
+    
+    \item \textbf{Learning and Caching:} Implement clause learning to avoid redundant exploration of similar subtrees.
+    
+    \item \textbf{Symmetry Breaking:} Detect and eliminate symmetric solutions to reduce the search space further.
 \end{itemize}
+
+\subsection{Parallel Computing Extensions}
+\begin{itemize}
+    \item \textbf{GPU Acceleration:} Develop CUDA implementation for massively parallel constraint checking and propagation. GPUs could accelerate the pre-coloring phase and enable parallel exploration of multiple search paths.
+    
+    \item \textbf{Work Stealing:} Replace static work distribution with dynamic work stealing to better handle irregular workloads and heterogeneous systems.
+    
+    \item \textbf{Asynchronous Communication:} Implement non-blocking MPI communication to overlap computation with data transfer.
+    
+    \item \textbf{Hierarchical Parallelism:} Explore three-level parallelism: MPI across nodes, OpenMP across cores, and SIMD vectorization within cores.
+\end{itemize}
+
+\subsection{Scalability Improvements}
+\begin{itemize}
+    \item \textbf{Distributed Pre-coloring:} Parallelize the constraint propagation phase, which currently runs redundantly on all processes.
+    
+    \item \textbf{Adaptive Granularity:} Dynamically adjust work unit size based on runtime performance metrics.
+    
+    \item \textbf{Fault Tolerance:} Implement checkpointing and recovery mechanisms for long-running computations on large clusters.
+    
+    \item \textbf{Cloud Deployment:} Adapt the solver for cloud environments with auto-scaling and spot instance support.
+\end{itemize}
+
+\subsection{Application to Other Problems}
+\begin{itemize}
+    \item \textbf{Sudoku Variants:} Extend to Sudoku, Killer Sudoku, and other Latin Square completion puzzles.
+    
+    \item \textbf{Graph Coloring:} Generalize the framework for arbitrary graph coloring problems.
+    
+    \item \textbf{Scheduling Problems:} Apply to real-world scheduling with additional constraints (time windows, precedence, resources).
+    
+    \item \textbf{SAT Solving:} Adapt the parallel framework for Boolean satisfiability problems.
+\end{itemize}
+
+\subsection{Machine Learning Integration}
+\begin{itemize}
+    \item \textbf{Learned Heuristics:} Train neural networks to predict promising search directions based on puzzle features.
+    
+    \item \textbf{Reinforcement Learning:} Use RL to optimize work distribution and load balancing strategies.
+    
+    \item \textbf{Pattern Recognition:} Identify common substructures that can be solved independently and cached.
+\end{itemize}
+
+\subsection{Software Engineering}
+\begin{itemize}
+    \item \textbf{Library Development:} Package the framework as a reusable library for constraint satisfaction problems.
+    
+    \item \textbf{Automatic Parallelization:} Develop compiler techniques to automatically parallelize constraint solvers.
+    
+    \item \textbf{Performance Modeling:} Create analytical models to predict performance on different architectures.
+    
+    \item \textbf{Visualization Tools:} Build interactive tools to visualize the search process and parallel execution.
+\end{itemize}
+
+These extensions would further improve performance, broaden applicability, and make the framework more accessible to researchers and practitioners working on constraint satisfaction problems.

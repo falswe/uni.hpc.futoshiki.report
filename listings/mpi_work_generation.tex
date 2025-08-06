@@ -1,25 +1,92 @@
 static int calculate_distribution_depth(Futoshiki* puzzle, int num_workers) {
-    // ...
-    // Find the smallest depth 'd' where the number of
-    // valid partial solutions is greater than num_workers
-    for (int d = 1; d <= num_empty && d <= max_depth; d++) {
-        job_count = count_valid_assignments_recursive(puzzle, ..., d);
-
-        print_progress("  - Depth %d check: found %lld units.", d, job_count);
+    double start_time = get_time();
+    
+    // Find all empty cells in the puzzle
+    int empty_cells[MAX_N * MAX_N][2];
+    int num_empty = find_empty_cells(puzzle, empty_cells);
+    
+    if (num_empty == 0) {
+        log_verbose("Puzzle has no empty cells; no work to distribute.");
+        return 0;
+    }
+    
+    log_verbose("Work Distribution Strategy:");
+    log_verbose("  - Target: >%d work units.", num_workers);
+    
+    int chosen_depth = 0;
+    long long job_count = 0;
+    int temp_solution[MAX_N][MAX_N];
+    
+    // Try progressively deeper levels until we have enough work units
+    for (int d = 1; d <= num_empty; d++) {
+        memcpy(temp_solution, puzzle->board, sizeof(temp_solution));
+        
+        // Count valid partial solutions at depth d
+        job_count = count_valid_assignments_recursive(
+            puzzle, temp_solution, empty_cells, num_empty, 0, d);
+        
+        log_verbose("  - Depth %d: %lld valid work units.", d, job_count);
         chosen_depth = d;
-
+        
+        // Stop if we have enough work units
         if (job_count > num_workers) {
+            log_verbose("  - Depth %d is sufficient.", chosen_depth);
             break;
         }
+        
+        // If we've exhausted the depth, use what we have
+        if (d == num_empty && job_count <= num_workers) {
+            log_verbose("  - Reached max depth (%d), using all %lld units.", 
+                       d, job_count);
+        }
     }
+    
+    if (job_count == 0 && num_empty > 0) {
+        log_warn("No valid work units could be generated. "
+                 "Puzzle might be unsolvable.");
+    }
+    
+    double end_time = get_time();
+    log_verbose("Depth calculation took %.6f seconds.", end_time - start_time);
+    log_info("Chosen depth: %d (will generate %lld work units)", 
+             chosen_depth, job_count);
+    
     return chosen_depth;
 }
 
 static WorkUnit* generate_work_units(Futoshiki* puzzle, int depth, int* num_units) {
-    // ...
-    // Recursively explore the search tree to the chosen
-    // depth and create a WorkUnit for each valid path
-    generate_work_units_recursive(puzzle, ..., depth, ...);
-    // ...
+    // Allocate initial capacity for work units
+    int capacity = 100;
+    if (g_mpi_size > 1)
+        capacity = (g_mpi_size - 1) * 4;  // 4x oversubscription
+    else
+        capacity = 64;
+    
+    if (capacity > 1000) capacity = 1000;  // Cap at reasonable limit
+    
+    WorkUnit* units = malloc(capacity * sizeof(WorkUnit));
+    if (!units) {
+        log_error("Failed to allocate memory for work units");
+        *num_units = 0;
+        return NULL;
+    }
+    
+    *num_units = 0;
+    int solution[MAX_N][MAX_N];
+    memcpy(solution, puzzle->board, sizeof(solution));
+    int assignments[MAX_N * 3];  // [row, col, color] triplets
+    
+    // Recursively generate all valid partial solutions at the target depth
+    generate_work_units_recursive(puzzle, solution, &units, num_units, 
+                                 &capacity, 0, depth, assignments, 0, 0);
+    
+    log_info("Generated %d work units at depth %d", *num_units, depth);
+    
+    // Shrink allocation to actual size
+    if (*num_units > 0 && *num_units < capacity) {
+        WorkUnit* shrunk = realloc(units, *num_units * sizeof(WorkUnit));
+        if (shrunk) units = shrunk;
+    }
+    
     return units;
 }

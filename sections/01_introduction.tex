@@ -1,0 +1,20 @@
+\section{Introduction}
+Combinatorial search problems are fundamental to computer science and artificial intelligence, with applications spanning logistics, scheduling, bioinformatics, and puzzle-solving. The Futoshiki puzzle, a Japanese constraint satisfaction problem, serves as an excellent benchmark for evaluating algorithmic approaches to these challenges. As an NP-Complete problem \cite{Sen2024Futoshiki}, Futoshiki requires filling an N×N grid with numbers from 1 to N while satisfying two constraint sets: the Latin Square property (each number appears exactly once per row and column) and inequality constraints between adjacent cells.
+
+While simple backtracking algorithms guarantee a solution, their exponential time complexity renders them impractical for large grids. A more sophisticated approach, proposed by Şen and Diner \cite{Sen2024Futoshiki}, transforms the puzzle into a list coloring problem. This paradigm introduces a pre-coloring phase that propagates constraints to reduce possible values for each cell, significantly pruning the search tree before the recursive search begins.
+
+However, even with these optimizations, solving large or exceptionally difficult puzzles demands substantial computational resources. High-Performance Computing (HPC) offers a path to overcoming these limitations through parallelization across multiple processors. This paper presents a comprehensive parallel computing framework for the Futoshiki puzzle that explores three distinct parallelization paradigms:
+
+\begin{enumerate}
+    \item \textbf{Shared-Memory Parallelism (OpenMP):} Exploiting multi-core architectures through task-based parallelism within a single node.
+    \item \textbf{Distributed-Memory Parallelism (MPI):} Scaling across multiple nodes using a dynamic master-worker model.
+    \item \textbf{Hybrid Parallelism (MPI+OpenMP):} Combining both paradigms to maximize resource utilization in modern HPC clusters.
+\end{enumerate}
+
+Our key contributions include:
+\begin{itemize}
+    \item An efficient sequential solver leveraging pre-coloring optimization as a performance baseline.
+    \item A unified work generation framework that dynamically partitions the search space based on available parallelism.
+    \item Three parallel implementations with configurable task generation factors for workload tuning.
+    \item Comprehensive performance analysis including speedup, efficiency, and scalability metrics across all paradigms.
+\end{itemize}

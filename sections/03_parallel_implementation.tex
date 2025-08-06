@@ -1,42 +1,158 @@
-\section{Parallel Implementation with MPI}
-To further accelerate the solving process for large and difficult puzzles, we developed a parallel version of the solver using MPI. We chose a master-worker paradigm, which is a common and effective strategy for problems with a divisible search space \cite{Pacheco2011}.
+\section{Parallel Design and Implementation}
 
-\subsection{Parallelization Strategy: Master-Worker}
-Our design designates MPI process 0 as the master and all other processes (1 to P-1) as workers. The overall workflow is as follows:
+\subsection{Multi-Level Work Generation Framework}
+All three parallel implementations share a sophisticated work generation strategy implemented in \texttt{parallel.c}. This framework dynamically determines the optimal depth for creating work units based on the target number of parallel workers.
+
+\begin{lstlisting}[language=C, caption=Dynamic depth calculation]
+int calculate_distribution_depth(
+    Futoshiki* puzzle, int num_workers) {
+    int empty_cells[MAX_N * MAX_N][2];
+    int num_empty = find_empty_cells(
+        puzzle, empty_cells);
+    
+    for (int d = 1; d <= num_empty; d++) {
+        long long job_count = 
+            count_valid_assignments_recursive(
+                puzzle, solution, empty_cells, 
+                num_empty, 0, d);
+        
+        if (job_count > num_workers) {
+            log_info("Depth %d generates %lld units", 
+                     d, job_count);
+            return d;
+        }
+    }
+    return num_empty;
+}
+\end{lstlisting}
+
+The algorithm explores the search tree to progressively deeper levels until generating sufficient work units. Each work unit represents a partial solution—a specific path through the initial portion of the search tree. This approach ensures:
+\begin{itemize}
+    \item \textbf{Load Balance:} Sufficient work units to keep all workers busy
+    \item \textbf{Granularity Control:} Work units neither too large (causing imbalance) nor too small (increasing overhead)
+    \item \textbf{Adaptability:} Automatic adjustment based on puzzle difficulty and worker count
+\end{itemize}
+
+\subsection{OpenMP Implementation: Task-Based Parallelism}
+Our OpenMP solver leverages task-based parallelism for shared-memory systems. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads:
+
+\begin{lstlisting}[language=C, caption=OpenMP task generation]
+#pragma omp parallel
+{
+    #pragma omp single
+    {
+        for (int i = num_work_units - 1; 
+             i >= 0 && !found_solution; i--) {
+            #pragma omp task firstprivate(i) \
+                        shared(found_solution)
+            {
+                if (!found_solution) {
+                    int local_solution[MAX_N][MAX_N];
+                    apply_work_unit(puzzle, 
+                        &work_units[i], local_solution);
+                    
+                    if (seq_color_g(puzzle, 
+                        local_solution, 
+                        start_row, start_col)) {
+                        #pragma omp critical
+                        {
+                            if (!found_solution) {
+                                found_solution = true;
+                                memcpy(solution, 
+                                    local_solution, 
+                                    sizeof(local_solution));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        #pragma omp taskwait
+    }
+}
+\end{lstlisting}
+
+Key features include:
+\begin{itemize}
+    \item \textbf{Dynamic Scheduling:} OpenMP runtime automatically balances tasks across threads
+    \item \textbf{Early Termination:} Shared flag enables immediate termination upon solution discovery
+    \item \textbf{Configurable Factor:} Task generation multiplier allows performance tuning
+\end{itemize}
+
+\subsection{MPI Implementation: Master-Worker Paradigm}
+The MPI solver implements a distributed master-worker model suitable for cluster environments:
+
 \begin{enumerate}
-    \item \textbf{Initialization:} All processes initialize MPI. The master reads the puzzle file.
-    \item \textbf{Data Broadcast:} The master broadcasts the initial puzzle structure to all worker processes.
-    \item \textbf{Shared Pre-coloring:} Crucially, every process (master and workers) independently runs the \texttt{compute\_pc\_lists} function. This is a redundant but necessary step to ensure every process has the identical, optimized search space (pc\_lists) without requiring further communication.
-    \item \textbf{Work Generation (Master):} The master generates a set of "work units." A work unit is a partial solution, representing a specific path down the search tree.
-    \item \textbf{Work Distribution (Master):} The master distributes these work units to workers on demand.
-    \item \textbf{Solving (Workers):} Each worker receives a work unit, applies the partial solution to its local board, and begins its own backtracking search from that point.
-    \item \textbf{Solution/Termination:} If a worker finds a solution, it notifies the master. The master then signals all other workers to terminate and collects the final solution. If all work units are completed without a solution, the master also orchestrates a shutdown.
+    \item \textbf{Master Process (Rank 0):}
+    \begin{itemize}
+        \item Broadcasts puzzle to all workers
+        \item Generates and manages work unit pool
+        \item Distributes work on demand
+        \item Collects solutions and coordinates termination
+    \end{itemize}
+    
+    \item \textbf{Worker Processes (Ranks 1 to P-1):}
+    \begin{itemize}
+        \item Request work units from master
+        \item Apply partial solutions and continue search
+        \item Report solutions back to master
+    \end{itemize}
 \end{enumerate}
 
-This workflow is depicted conceptually in Figure \ref{fig:mpi_workflow}.
+The communication protocol uses tagged messages for clarity:
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.9\linewidth]{images/mpi_workflow.png}
-\caption{Conceptual workflow of the Master-Worker MPI model. The master generates and distributes work, while workers request work and perform the search.}
-\label{fig:mpi_workflow}
-\end{figure}
+\begin{lstlisting}[language=C, caption=MPI communication tags]
+typedef enum {
+    TAG_WORK_REQUEST = 1,
+    TAG_SOLUTION_FOUND = 2,
+    TAG_SOLUTION_DATA = 3,
+    TAG_TERMINATE = 4,
+    TAG_WORK_ASSIGNMENT = 5
+} MessageTag;
+\end{lstlisting}
 
-\subsection{Work Unit Generation}
-A critical aspect of the master's role is creating meaningful work units. Simply assigning the first few empty cells is not robust. Our implementation uses a more intelligent approach in \texttt{calculate\_distribution\_depth} and \texttt{generate\_work\_units}.
-The master first determines an optimal `depth` for the initial search. It recursively counts how many valid partial solutions exist at depth 1, 2, 3, etc., until the number of partial solutions exceeds the number of workers. This ensures there is enough work to keep all workers busy. Once the depth is chosen, the master generates all valid partial solutions up to that depth. Each of these becomes a `WorkUnit` to be sent to a worker. A snippet of this logic is shown in Listing \ref{lst:work_gen}.
+This design enables dynamic load balancing—workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty.
 
-\begin{figure}[htbp]
-\caption{Code snippet for work unit generation.}
-\label{lst:work_gen}
-\lstinputlisting{listings/mpi_work_generation.tex}
-\end{figure}
+\subsection{Hybrid Implementation: Combining MPI and OpenMP}
+The hybrid solver exploits both distributed and shared memory parallelism:
 
-\subsection{Job Submission on HPC Cluster}
-The solver is designed to be executed on an HPC cluster managed by a PBS (Portable Batch System) scheduler. We provide a utility script, \texttt{submit\_job.sh}, to simplify job submission. This script dynamically generates the necessary PBS resource requests based on user input for the number of processes. A sample invocation and the generated PBS directives are shown in Listing \ref{lst:pbs_submit}.
+\begin{itemize}
+    \item \textbf{Inter-node:} MPI distributes coarse-grained work units across nodes
+    \item \textbf{Intra-node:} OpenMP further parallelizes each work unit within a node
+\end{itemize}
 
-\begin{figure}[htbp]
-\caption{Example usage of the job submission script.}
-\label{lst:pbs_submit}
-\lstinputlisting[language=Bash]{listings/pbs_submit_script.tex}
-\end{figure}
+\begin{lstlisting}[language=C, caption=Hybrid worker with nested parallelism]
+static void hybrid_worker(Futoshiki* puzzle) {
+    WorkUnit work_unit;
+    MPI_Status status;
+    
+    while (true) {
+        // Request work from master via MPI
+        MPI_Send(&request, 1, MPI_INT, 0, 
+                 TAG_WORK_REQUEST, MPI_COMM_WORLD);
+        MPI_Recv(&work_unit, sizeof(WorkUnit), 
+                 MPI_BYTE, 0, MPI_ANY_TAG, 
+                 MPI_COMM_WORLD, &status);
+        
+        if (status.MPI_TAG == TAG_TERMINATE) break;
+        
+        // Apply work unit and solve with OpenMP
+        Futoshiki sub_puzzle;
+        memcpy(&sub_puzzle, puzzle, sizeof(Futoshiki));
+        apply_work_unit(&sub_puzzle, &work_unit, 
+                       sub_puzzle.board);
+        
+        if (omp_solve(&sub_puzzle, local_solution)) {
+            // Report solution via MPI
+            MPI_Send(&found_flag, 1, MPI_INT, 0, 
+                    TAG_SOLUTION_FOUND, MPI_COMM_WORLD);
+            MPI_Send(local_solution, MAX_N * MAX_N, 
+                    MPI_INT, 0, TAG_SOLUTION_DATA, 
+                    MPI_COMM_WORLD);
+            break;
+        }
+    }
+}
+\end{lstlisting}
+
+This two-level approach maximizes resource utilization on modern HPC clusters where nodes contain many cores. The implementation carefully manages the task generation factors at both levels to prevent oversubscription while ensuring sufficient parallelism.
