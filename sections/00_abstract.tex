@@ -1,0 +1,13 @@
+\section{Introduction}
+Combinatorial search problems are a cornerstone of computer science and artificial intelligence, with applications ranging from logistics and scheduling to bioinformatics. Pencil puzzles, such as Sudoku and Futoshiki, serve as accessible yet challenging benchmarks for the algorithms designed to solve these problems. The Futoshiki puzzle, in particular, is an NP-Complete problem \cite{Sen2024Futoshiki} that requires filling an N×N grid with numbers from 1 to N, adhering to two sets of rules: the Latin Square property (each number appears once per row and column) and a series of inequality constraints between adjacent cells.
+
+A naive approach to solving Futoshiki is a simple backtracking algorithm that explores the entire solution space. However, due to the problem's exponential complexity, this method quickly becomes infeasible as the grid size N increases. A more sophisticated approach, and the foundation of our work, is to treat the puzzle as a list coloring problem. As proposed by Şen and Diner \cite{Sen2024Futoshiki}, this involves a pre-processing step, which we term "pre-coloring," to reduce the set of possible values (colors) for each cell based on the given inequality constraints. This constraint propagation significantly prunes the search tree, leading to much faster solution times.
+
+While pre-coloring greatly improves sequential performance, solving very large or exceptionally difficult puzzles still demands substantial computational resources. High-Performance Computing (HPC) offers a path to overcoming these limitations. By parallelizing the solver, we can distribute the computational workload across multiple processors, drastically reducing the total time to find a solution.
+
+This paper details the design, implementation, and evaluation of a parallel Futoshiki solver. Our contributions are twofold:
+\begin{enumerate}
+    \item We implement an efficient sequential solver that leverages the pre-coloring optimization to establish a strong performance baseline.
+    \item We develop a parallel version of this solver using the Message Passing Interface (MPI) \cite{MPIForum2021}, based on a dynamic master-worker paradigm.
+\end{enumerate}
+We present a thorough analysis of both the pre-coloring optimization's impact and the parallel performance of the MPI implementation, including metrics like speedup and efficiency. The goal is to demonstrate a robust methodology for tackling hard combinatorial problems by combining intelligent algorithms with parallel computing power.

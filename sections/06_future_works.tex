@@ -1,0 +1,8 @@
+\section{Future Works}
+While our solver is both robust and efficient, several avenues for future improvement exist:
+\begin{itemize}
+    \item \textbf{Hybrid MPI+OpenMP Model:} The current model uses one process per core. A hybrid model could be developed where each MPI worker process uses multiple threads (via OpenMP) to solve its assigned work unit. This could reduce inter-process communication overhead and may be more efficient on modern multi-core node architectures.
+    \item \textbf{Dynamic Load Balancing:} The master currently distributes a static pool of work units. A more dynamic "work stealing" model could be implemented, where idle workers request work from busy ones. This would better handle cases where some initial work units are much harder to solve than others.
+    \item \textbf{Heuristic Work Ordering:} The master could analyze the generated work units and distribute the ones that seem most constrained (and thus most likely to fail fast or lead to a solution) first. This could help prune the global search tree more quickly.
+    \item \textbf{Application to Other Problems:} The core framework of pre-coloring followed by a parallel master-worker search could be adapted to solve other Latin Square-type puzzles, such as Sudoku, or even other constraint satisfaction problems.
+\end{itemize}

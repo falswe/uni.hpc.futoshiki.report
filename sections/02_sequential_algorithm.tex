@@ -1,0 +1,29 @@
+\section{The Sequential Algorithm: A List Coloring Approach}
+Our implementation is founded on the principle of transforming the Futoshiki puzzle into a list coloring problem, as detailed in \cite{Sen2024Futoshiki}. This approach is significantly more efficient than simple backtracking because it reduces the search space before the recursive search even begins. The sequential solver consists of two main phases: a pre-coloring (constraint propagation) phase and a backtracking search phase.
+
+\subsection{Pre-coloring: Search Space Reduction}
+The key optimization is the pre-coloring phase, implemented in the \texttt{compute\_pc\_lists} function. Instead of allowing every number from 1 to N for each empty cell, we compute a "possible color list" (pc\_list) for each cell. This is an iterative process that continues until no more values can be eliminated.
+
+\begin{enumerate}
+    \item \textbf{Initialization:} Each empty cell's pc\_list is initialized with all numbers from 1 to N. Cells with pre-filled values have a pc\_list containing only that single value.
+    
+    \item \textbf{Inequality Filtering (\texttt{filter\_possible\_colors}):} For each cell, we check its inequality constraints against its neighbors. For example, if cell A $>$ cell B, and cell B's pc\_list contains only \{1, 2\}, then any value in cell A's pc\_list less than or equal to 3 (the smallest possible value in A is 2, requiring B to be 1) is invalid and can be removed. This filtering is applied iteratively for all constraints.
+    
+    \item \textbf{Uniqueness Propagation (\texttt{process\_uniqueness}):} If the filtering process reduces a cell's pc\_list to a single value, that cell is effectively "solved." This new information is then propagated: that value is removed from the pc\_lists of all other cells in the same row and column.
+\end{enumerate}
+
+This iterative filtering and propagation continues until a full pass over the grid results in no changes to any pc\_list. The number of values removed provides a direct measure of the search space reduction achieved.
+
+\subsection{Backtracking with List Coloring}
+After the pre-coloring phase, a standard recursive backtracking algorithm (\texttt{color\_g\_seq}) is employed. However, instead of trying all numbers from 1 to N at each step, it only tries the values present in that cell's pre-computed pc\_list. 
+
+The recursive function proceeds as follows:
+\begin{enumerate}
+    \item Select the next empty cell.
+    \item Iterate through each "color" (value) in the cell's pc\_list.
+    \item For each color, check if it is `safe` (i.e., not already present in the current row/column and satisfies inequalities with already-placed neighbors).
+    \item If the color is safe, place it on the board and recurse to the next cell.
+    \item If the recursive call returns a solution, propagate the success.
+    \item If not, backtrack by removing the color and trying the next one in the pc\_list.
+\end{enumerate}
+If all colors in the pc\_list are exhausted without finding a solution, the function returns failure, triggering a backtrack at the previous level. This combination of pre-coloring and a constrained backtracking search forms our efficient sequential baseline.

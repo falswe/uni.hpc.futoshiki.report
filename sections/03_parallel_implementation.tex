@@ -1,0 +1,42 @@
+\section{Parallel Implementation with MPI}
+To further accelerate the solving process for large and difficult puzzles, we developed a parallel version of the solver using MPI. We chose a master-worker paradigm, which is a common and effective strategy for problems with a divisible search space \cite{Pacheco2011}.
+
+\subsection{Parallelization Strategy: Master-Worker}
+Our design designates MPI process 0 as the master and all other processes (1 to P-1) as workers. The overall workflow is as follows:
+\begin{enumerate}
+    \item \textbf{Initialization:} All processes initialize MPI. The master reads the puzzle file.
+    \item \textbf{Data Broadcast:} The master broadcasts the initial puzzle structure to all worker processes.
+    \item \textbf{Shared Pre-coloring:} Crucially, every process (master and workers) independently runs the \texttt{compute\_pc\_lists} function. This is a redundant but necessary step to ensure every process has the identical, optimized search space (pc\_lists) without requiring further communication.
+    \item \textbf{Work Generation (Master):} The master generates a set of "work units." A work unit is a partial solution, representing a specific path down the search tree.
+    \item \textbf{Work Distribution (Master):} The master distributes these work units to workers on demand.
+    \item \textbf{Solving (Workers):} Each worker receives a work unit, applies the partial solution to its local board, and begins its own backtracking search from that point.
+    \item \textbf{Solution/Termination:} If a worker finds a solution, it notifies the master. The master then signals all other workers to terminate and collects the final solution. If all work units are completed without a solution, the master also orchestrates a shutdown.
+\end{enumerate}
+
+This workflow is depicted conceptually in Figure \ref{fig:mpi_workflow}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{images/mpi_workflow.png}
+\caption{Conceptual workflow of the Master-Worker MPI model. The master generates and distributes work, while workers request work and perform the search.}
+\label{fig:mpi_workflow}
+\end{figure}
+
+\subsection{Work Unit Generation}
+A critical aspect of the master's role is creating meaningful work units. Simply assigning the first few empty cells is not robust. Our implementation uses a more intelligent approach in \texttt{calculate\_distribution\_depth} and \texttt{generate\_work\_units}.
+The master first determines an optimal `depth` for the initial search. It recursively counts how many valid partial solutions exist at depth 1, 2, 3, etc., until the number of partial solutions exceeds the number of workers. This ensures there is enough work to keep all workers busy. Once the depth is chosen, the master generates all valid partial solutions up to that depth. Each of these becomes a `WorkUnit` to be sent to a worker. A snippet of this logic is shown in Listing \ref{lst:work_gen}.
+
+\begin{figure}[htbp]
+\caption{Code snippet for work unit generation.}
+\label{lst:work_gen}
+\lstinputlisting{listings/mpi_work_generation.tex}
+\end{figure}
+
+\subsection{Job Submission on HPC Cluster}
+The solver is designed to be executed on an HPC cluster managed by a PBS (Portable Batch System) scheduler. We provide a utility script, \texttt{submit\_job.sh}, to simplify job submission. This script dynamically generates the necessary PBS resource requests based on user input for the number of processes. A sample invocation and the generated PBS directives are shown in Listing \ref{lst:pbs_submit}.
+
+\begin{figure}[htbp]
+\caption{Example usage of the job submission script.}
+\label{lst:pbs_submit}
+\lstinputlisting[language=Bash]{listings/pbs_submit_script.tex}
+\end{figure}

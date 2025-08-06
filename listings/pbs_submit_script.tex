@@ -1,0 +1,7 @@
+# Example usage:
+# ./submit_job.sh mpi puzzles/9x9_hard_3.txt 16
+
+# This will submit jobs/futoshiki_mpi.pbs with the
+# following variables and dynamically generated resources:
+# -v PUZZLE_FILE="puzzles/9x9_hard_3.txt",NPROCS="16"
+# -l select=16:ncpus=1:mem=2gb

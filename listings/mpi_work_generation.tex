@@ -1,0 +1,25 @@
+static int calculate_distribution_depth(Futoshiki* puzzle, int num_workers) {
+    // ...
+    // Find the smallest depth 'd' where the number of
+    // valid partial solutions is greater than num_workers
+    for (int d = 1; d <= num_empty && d <= max_depth; d++) {
+        job_count = count_valid_assignments_recursive(puzzle, ..., d);
+
+        print_progress("  - Depth %d check: found %lld units.", d, job_count);
+        chosen_depth = d;
+
+        if (job_count > num_workers) {
+            break;
+        }
+    }
+    return chosen_depth;
+}
+
+static WorkUnit* generate_work_units(Futoshiki* puzzle, int depth, int* num_units) {
+    // ...
+    // Recursively explore the search tree to the chosen
+    // depth and create a WorkUnit for each valid path
+    generate_work_units_recursive(puzzle, ..., depth, ...);
+    // ...
+    return units;
+}
