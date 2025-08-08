@@ -1,20 +1,27 @@
 \section{Introduction}
-Combinatorial search problems are fundamental to computer science and artificial intelligence, with applications spanning logistics, scheduling, bioinformatics, and puzzle-solving. The Futoshiki puzzle, a Japanese constraint satisfaction problem, serves as an excellent benchmark for evaluating algorithmic approaches to these challenges. As an NP-Complete problem \cite{Sen2024Futoshiki}, Futoshiki requires filling an N×N grid with numbers from 1 to N while satisfying two constraint sets: the Latin Square property (each number appears exactly once per row and column) and inequality constraints between adjacent cells.
+Combinatorial search problems are fundamental to computer science and artificial intelligence. Among the applications we find logistics, scheduling, bioinformatics, and puzzle-solving. 
 
-While simple backtracking algorithms guarantee a solution, their exponential time complexity renders them impractical for large grids. A more sophisticated approach, proposed by Şen and Diner \cite{Sen2024Futoshiki}, transforms the puzzle into a list coloring problem. This paradigm introduces a pre-coloring phase that propagates constraints to reduce possible values for each cell, significantly pruning the search tree before the recursive search begins.
+The Futoshiki puzzle, a Japanese constraint satisfaction problem, serves as an excellent benchmark for evaluating algorithmic approaches to these challenges. Futoshiki requires filling an N×N grid with numbers from 1 to N while satisfying two constraint sets: the Latin Square property (each number appears exactly once per row and column) and inequality constraints between adjacent cells.
 
-However, even with these optimizations, solving large or exceptionally difficult puzzles demands substantial computational resources. High-Performance Computing (HPC) offers a path to overcoming these limitations through parallelization across multiple processors. This paper presents a comprehensive parallel computing framework for the Futoshiki puzzle that explores three distinct parallelization paradigms:
+In order to let the reader get accustomed with the problem that is being proposed, here we present a simple instance of a Futoshiki puzzle.
+
+
+From an high level point of view, one could say it is similar to the more known \textit{Sudoku}, and it is true as both of these puzzles have as their main constraint the aforementioned \textit{Latin Square} property. The similarities among those are not only to be found at a conceptual level, but also looking at it from a computer science point of view, specifically from a computational complexity standpoint, both of them lie in the family of NP-Complete problems. 
+
+As for the complexity of Futoshiki, it is presented by Şen and Diner in \cite{Sen2024Futoshiki}. This means that while simple backtracking algorithms guarantee a solution, their exponential time complexity renders them impractical for large grids. In the aforementioned paper, a more sophisticated approach is presented: conceptually Futoshiki puzzle can be transformed into a list coloring problem. This finding introduces a pre-coloring phase that propagates constraints to reduce possible values for each cell, significantly pruning the search space of the backtracking algorithm before the recursive search begins.
+
+However, even with these optimizations, solving large or difficult puzzles is going to demand substantial computational resources. High-Performance Computing (HPC) makes it possible to overcome these limitations through parallelization across multiple processors. In this paper we present a comprehensive parallel solution for the Futoshiki puzzle that explores three distinct parallelization paradigms:
 
 \begin{enumerate}
-    \item \textbf{Shared-Memory Parallelism (OpenMP):} Exploiting multi-core architectures through task-based parallelism within a single node.
-    \item \textbf{Distributed-Memory Parallelism (MPI):} Scaling across multiple nodes using a dynamic master-worker model.
-    \item \textbf{Hybrid Parallelism (MPI+OpenMP):} Combining both paradigms to maximize resource utilization in modern HPC clusters.
+    \item \textbf{Shared-Memory Parallelism (OpenMP):} \cite{OpenMP2020} Exploiting multi-core architectures through task-based parallelism within a single node.
+    \item \textbf{Distributed-Memory Parallelism (MPI):} \cite{MPIForum2021} Leveraging a dynamic master-worker approach to be able to scale across multiple nodes.
+    \item \textbf{Hybrid Parallelism (MPI+OpenMP):} Combining both paradigms to maximize resource utilization.
 \end{enumerate}
 
 Our key contributions include:
 \begin{itemize}
-    \item An efficient sequential solver leveraging pre-coloring optimization as a performance baseline.
-    \item A unified work generation framework that dynamically partitions the search space based on available parallelism.
-    \item Three parallel implementations with configurable task generation factors for workload tuning.
-    \item Comprehensive performance analysis including speedup, efficiency, and scalability metrics across all paradigms.
+    \item An efficient sequential solver implementing the pre-coloring optimization algorithm presented in the Futoshiki paper as a performance baseline.
+    \item An algorithm which dynamically performs fundamental puzzle solving before assigning to the different working units, based on the available parallelism. 
+    \item Three parallel implementations (MPI, OpenMP, Hybrid) with configurable task generation factors for workload tuning. For the last one, there is also the possibility of tweaking how much the solution should rely on MPI or omp.
+    \item Comprehensive performance analysis including speedup, efficiency, and scalability metrics across all the solutions proposed.
 \end{itemize}
