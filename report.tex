@@ -1,6 +1,7 @@
 \documentclass[10pt, conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 
+
 \usepackage[utf8]{inputenc}
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
@@ -12,6 +13,12 @@
 \usepackage{booktabs}
 \usepackage{listings}
 \usepackage{subfigure}
+
+\usepackage[colorinlistoftodos]{todonotes} % cool todos
+
+% ALWAYS NEEDS TO BE THE LAST PACKAGE DEFINED
+\usepackage{cleveref} % note make \Cref and not \ref
+
 
 % Define custom colors for listings
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -48,6 +55,7 @@
 }
 
 \begin{document}
+\include{tools/cmds}
 
 \title{High-Performance Parallel Solver for the Futoshiki Puzzle:\\
 A Multi-Paradigm Approach using MPI, OpenMP, and Hybrid Parallelization\\
@@ -84,12 +92,11 @@ Futoshiki, Constraint Satisfaction, List Coloring, OpenMP, MPI, Hybrid Paralleli
 \end{IEEEkeywords}
 
 \input{sections/01_introduction}
-\input{sections/02_sequential_algorithm}
-\input{sections/03_parallel_implementation}
+\input{sections/02_related_work}
+\input{sections/03_solution}
 \input{sections/04_experimental_evaluation}
 \input{sections/05_conclusion}
 \input{sections/06_future_work}
-\input{sections/07_related_work}
 
 % Bibliography
 \bibliographystyle{IEEEtran}
