@@ -1,10 +1,16 @@
 \section{Solution Proposed}
 \label{sec:solution}
-\subsection{The Sequential Algorithm: A List Coloring Approach}
-\label{sec:sequential_algo}
+
+We now present our findings and solutions in solving Futoshiki puzzle. We start in \Cref{subsec:paper_implementation} by first understanding how the sequential algorithm proposed by Şen and Diner in \cite{Sen2024Futoshiki} work. In this section we dive into how the precoloring works in \Cref{par:precoloring} and we wrap up by understanding how the backtrack with CSP helps us solve the problem in \Cref{par:backtrack_with_csp}
+
+After having obtained what is going to become our baseline in the validation, we move towards the parallel implementations in \Cref{subsec:parallel_implementation}: we start off by understanding how the dynamic load balancing works in \Cref{par:dynamic_load_balancing}, as it is a sophisticated algorithm at the base of every parallel implementation. We then move towards the MPI implementation in \cref{par:mpi_implementation}, then to the OpenMP implementation in \cref{par:omp_implementation} and finally to the hybrid implementation in \cref{par:hybrid_implementation}.
+
+\subsection{Implementing The Sequential Algorithm}
+\label{subsec:paper_implementation}
 Our implementation builds upon the list coloring transformation detailed in \cite{Sen2024Futoshiki}. This approach significantly outperforms naive backtracking by reducing the search space through constraint propagation before the recursive search begins.
 
-\subsection{Pre-coloring: Search Space Reduction}
+\paragraph{Pre-coloring: Search Space Reduction}
+\label{par:precoloring}
 The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "possible color list" (pc\_list) for each cell through iterative constraint propagation:
 
 \begin{enumerate}
@@ -19,7 +25,8 @@ The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "
 
 This process often eliminates 70-90\% of possible values, dramatically reducing the search space complexity from $O(N^{N^2})$ to a much smaller effective branching factor.
 
-\subsection{Backtracking with Constrained Search}
+\paragraph{Backtracking with Constrained Search}
+\label{par:backtrack_with_csp}
 After pre-coloring, the recursive backtracking function \texttt{seq\_color\_g} explores only values in each cell's reduced pc\_list:
 
 \begin{lstlisting}[language=C, caption=Sequential backtracking core]
@@ -57,8 +64,12 @@ bool seq_color_g(Futoshiki* puzzle,
 The \texttt{safe} function validates that a color assignment doesn't violate Latin Square constraints or inequality relationships with already-placed neighbors. This combination of pre-coloring and constrained backtracking forms our efficient sequential baseline.
 
 \subsection{Parallel Design and Implementation}
+\label{subsec:parallel_implementation}
+we have to fill this
+\sd{mark here}
 
-\subsection{Multi-Level Work Generation Framework}
+\paragraph{Multi-Level Work Generation Framework}
+\label{par:dynamic_load_balancing}
 All three parallel implementations share a sophisticated work generation strategy implemented in \texttt{parallel.c}. This framework dynamically determines the optimal depth for creating work units based on the target number of parallel workers.
 
 \begin{lstlisting}[language=C, caption=Dynamic depth calculation]
@@ -91,7 +102,44 @@ The algorithm explores the search tree to progressively deeper levels until gene
     \item \textbf{Adaptability:} Automatic adjustment based on puzzle difficulty and worker count
 \end{itemize}
 
-\subsection{OpenMP Implementation: Task-Based Parallelism}
+\paragraph{MPI Implementation: Master-Worker Paradigm}
+\label{par:mpi_implementation}
+The MPI solver implements a distributed master-worker model suitable for cluster environments:
+
+\begin{enumerate}
+    \item \textbf{Master Process (Rank 0):}
+    \begin{itemize}
+        \item Broadcasts puzzle to all workers
+        \item Generates and manages work unit pool
+        \item Distributes work on demand
+        \item Collects solutions and coordinates termination
+    \end{itemize}
+    
+    \item \textbf{Worker Processes (Ranks 1 to P-1):}
+    \begin{itemize}
+        \item Request work units from master
+        \item Apply partial solutions and continue search
+        \item Report solutions back to master
+    \end{itemize}
+\end{enumerate}
+
+The communication protocol uses tagged messages for clarity:
+
+\begin{lstlisting}[language=C, caption=MPI communication tags]
+typedef enum {
+    TAG_WORK_REQUEST = 1,
+    TAG_SOLUTION_FOUND = 2,
+    TAG_SOLUTION_DATA = 3,
+    TAG_TERMINATE = 4,
+    TAG_WORK_ASSIGNMENT = 5
+} MessageTag;
+\end{lstlisting}
+
+This design enables dynamic load balancing—workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty.
+
+
+\paragraph{OpenMP Implementation: Task-Based Parallelism}
+\label{par:omp_implementation}
 Our OpenMP solver leverages task-based parallelism for shared-memory systems. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads:
 
 \begin{lstlisting}[language=C, caption=OpenMP task generation]
@@ -137,41 +185,8 @@ Key features include:
     \item \textbf{Configurable Factor:} Task generation multiplier allows performance tuning
 \end{itemize}
 
-\subsection{MPI Implementation: Master-Worker Paradigm}
-The MPI solver implements a distributed master-worker model suitable for cluster environments:
-
-\begin{enumerate}
-    \item \textbf{Master Process (Rank 0):}
-    \begin{itemize}
-        \item Broadcasts puzzle to all workers
-        \item Generates and manages work unit pool
-        \item Distributes work on demand
-        \item Collects solutions and coordinates termination
-    \end{itemize}
-    
-    \item \textbf{Worker Processes (Ranks 1 to P-1):}
-    \begin{itemize}
-        \item Request work units from master
-        \item Apply partial solutions and continue search
-        \item Report solutions back to master
-    \end{itemize}
-\end{enumerate}
-
-The communication protocol uses tagged messages for clarity:
-
-\begin{lstlisting}[language=C, caption=MPI communication tags]
-typedef enum {
-    TAG_WORK_REQUEST = 1,
-    TAG_SOLUTION_FOUND = 2,
-    TAG_SOLUTION_DATA = 3,
-    TAG_TERMINATE = 4,
-    TAG_WORK_ASSIGNMENT = 5
-} MessageTag;
-\end{lstlisting}
-
-This design enables dynamic load balancing—workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty.
-
-\subsection{Hybrid Implementation: Combining MPI and OpenMP}
+\paragraph{Hybrid Implementation: Combining MPI and OpenMP}
+\label{par:hybrid_implementation}
 The hybrid solver exploits both distributed and shared memory parallelism:
 
 \begin{itemize}
