@@ -7,7 +7,7 @@ After having obtained what is going to become our baseline in the validation, we
 
 \subsection{Implementing The Sequential Algorithm}
 \label{subsec:paper_implementation}
-Our implementation builds upon the list coloring transformation detailed in \cite{Sen2024Futoshiki}. This approach significantly outperforms naive backtracking by reducing the search space through constraint propagation before the recursive search begins.
+Our implementation builds upon the list coloring transformation detailed by Şen and Diner in \cite{Sen2024Futoshiki}. This approach significantly outperforms naive backtracking by reducing the search space through constraint propagation before the recursive search begins. 
 
 \paragraph{Pre-coloring: Search Space Reduction}
 \label{par:precoloring}
@@ -16,9 +16,9 @@ The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "
 \begin{enumerate}
     \item \textbf{Initialization:} Empty cells receive pc\_lists containing all values 1 to N. Pre-filled cells contain only their given value.
     
-    \item \textbf{Inequality Filtering:} The \texttt{filter\_possible\_colors} function removes values that violate inequality constraints. For instance, if cell A > cell B and B's pc\_list = \{1, 2\}, then A cannot contain values $\leq$ 2.
+    \item \textbf{Inequality Filtering:} The \texttt{filter\_possible\_colors} function removes values that violate inequality constraints. For instance, if cell A $\gt$ cell B and A's pc\_list = \{1, 2\}, then B cannot contain values $\lt$ 2.
     
-    \item \textbf{Uniqueness Propagation:} When a cell's pc\_list reduces to a single value, \texttt{process\_uniqueness} removes that value from all other cells in the same row and column.
+    \item \textbf{Uniqueness Propagation:} When a cell's pc\_list reduces to a single value, \texttt{process\_uniqueness} removes that value from all other cells in the same row and column. To continue with our example, as B can have value 1 and 2, and as A can have $n \lt 2$, it would mean that A is going to hold 1 as it is the only integer strictly lower than 2, and B therefore would hold 2, as its pc\_list had two values and we need to respect the \textit{Latin Square} property.
     
     \item \textbf{Iteration:} Steps 2-3 repeat until no further reductions occur, ensuring maximal constraint propagation.
 \end{enumerate}
@@ -61,11 +61,13 @@ bool seq_color_g(Futoshiki* puzzle,
 }
 \end{lstlisting}
 
-The \texttt{safe} function validates that a color assignment doesn't violate Latin Square constraints or inequality relationships with already-placed neighbors. This combination of pre-coloring and constrained backtracking forms our efficient sequential baseline.
+The \texttt{safe} function validates that a color assignment doesn't violate Latin Square constraints or inequality relationships with already-placed neighbors. This combination of pre-coloring and constrained backtracking forms our efficient sequential baseline with which we evaluated the parallel solution w.r.t.
+
+It is also important to present this approach here, as it is effectively the starting point of our solution and also parallel implementation rely on the same concepts or algorithms.
 
 \subsection{Parallel Design and Implementation}
 \label{subsec:parallel_implementation}
-we have to fill this
+We now move towards the presentation of our parallel solutions. We start off with an explanation on why our solution differs and improves upon the state of the art by employing a dynamic load balancing algorithm, as this one is used across several parallel implementations. We then move towards MPI, OpenMP and hybrid approach.  
 \sd{mark here}
 
 \paragraph{Multi-Level Work Generation Framework}
