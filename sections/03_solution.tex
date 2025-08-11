@@ -29,7 +29,7 @@ This process often eliminates 70-90\% of possible values, dramatically reducing 
 \label{par:backtrack_with_csp}
 After pre-coloring, the recursive backtracking function \texttt{seq\_color\_g} explores only values in each cell's reduced pc\_list:
 
-\begin{lstlisting}[language=C, caption=Sequential backtracking core]
+\begin{lstlisting}[language=C, caption=Sequential backtracking core, label={listing:precoloring}]
 bool seq_color_g(Futoshiki* puzzle, 
                  int solution[MAX_N][MAX_N], 
                  int row, int col) {
@@ -61,20 +61,23 @@ bool seq_color_g(Futoshiki* puzzle,
 }
 \end{lstlisting}
 
-The \texttt{safe} function validates that a color assignment doesn't violate Latin Square constraints or inequality relationships with already-placed neighbors. This combination of pre-coloring and constrained backtracking forms our efficient sequential baseline with which we evaluated the parallel solution w.r.t.
+\Cref{listing:precoloring} shows how the search space reduction is employed in the pre-coloring phase. The \texttt{safe} function validates that a color assignment doesn't violate Latin Square constraints or inequality relationships with already-placed neighbors. This combination of pre-coloring and constrained backtracking forms our efficient sequential baseline with which we evaluated the parallel solution w.r.t.
 
 It is also important to present this approach here, as it is effectively the starting point of our solution and also parallel implementation rely on the same concepts or algorithms.
 
+It is worth mentioning that, as Futoshiki puzzle has 1 unique solution per instance, it is not possible that two threads ever have two possible ordering of numbers such that they both lead to a solution. This means that the algorithm effectively ends once the one and only solution is found. This is needed in order to state the correctness of our approach, and the correctness of our algorithm is also based on this statement.
+
 \subsection{Parallel Design and Implementation}
 \label{subsec:parallel_implementation}
-We now move towards the presentation of our parallel solutions. We start off with an explanation on why our solution differs and improves upon the state of the art by employing a dynamic load balancing algorithm, as this one is used across several parallel implementations. We then move towards MPI, OpenMP and hybrid approach.  
-\sd{mark here}
+We now move towards the presentation of our parallel solutions. We start off with an explanation on why our solution differs and improves upon the state of the art by employing a dynamic load balancing algorithm, as this one is used across several parallel implementations. We then move towards MPI, OpenMP and hybrid approach. 
+
+The aforementioned algorithm to perform the pruning of the backtrack search space via list coloring runs in polynomial time. From a practical point of view, this means that, by spending "a little bit amount of time" in the precoloring phase, the speedup that we obtain is quite high. Now, as we know from Ahmdal's Law, given a specific "Enhancement" over the existing algorithm, we can represent the speedup over a machine which is running a process as the ratio among the execution time without said Enhancement over the execution time with it being applied. This means that, as the pre-coloring phase is quite fast already and that already is a good "Enhancement", and as the actual solving of the problem is non polynomial, it makes quite a lot of sense to shift our focus towards trying to obtain some Enhancement also for the non polynomial part of the algorithm, given the fact that making the precoloring algorithm does not take too much time. Furthermore, by the law of diminishing returns, it would not make too much sense to apply other enhancement and speedup on the precoloring, as that would not lead to another high increment over the execution time of the total solution.
 
 \paragraph{Multi-Level Work Generation Framework}
 \label{par:dynamic_load_balancing}
 All three parallel implementations share a sophisticated work generation strategy implemented in \texttt{parallel.c}. This framework dynamically determines the optimal depth for creating work units based on the target number of parallel workers.
 
-\begin{lstlisting}[language=C, caption=Dynamic depth calculation]
+\begin{lstlisting}[language=C, caption=Dynamic depth calculation,label={listing:calculate_distribution_depth}]
 int calculate_distribution_depth(
     Futoshiki* puzzle, int num_workers) {
     int empty_cells[MAX_N * MAX_N][2];
@@ -97,37 +100,38 @@ int calculate_distribution_depth(
 }
 \end{lstlisting}
 
-The algorithm explores the search tree to progressively deeper levels until generating sufficient work units. Each work unit represents a partial solution—a specific path through the initial portion of the search tree. This approach ensures:
+As we can see in \Cref{listing:calculate_distribution_depth}, the algorithm explores the search tree to progressively deeper levels until generating sufficient work units. Each work unit represents a partial solution, which means that it also represent a specific path through the initial portion of the search tree. This approach ensures:
 \begin{itemize}
-    \item \textbf{Load Balance:} Sufficient work units to keep all workers busy
-    \item \textbf{Granularity Control:} Work units neither too large (causing imbalance) nor too small (increasing overhead)
-    \item \textbf{Adaptability:} Automatic adjustment based on puzzle difficulty and worker count
+    \item \textbf{Load Balance:} Sufficient work units to minimize the idle time in each worker.
+    \item \textbf{Granularity Control:} Work units neither too large (causing imbalance) nor too small (increasing overhead).
+    \item \textbf{Adaptability:} Automatic adjustment based on puzzle difficulty and worker count.
 \end{itemize}
 
 \paragraph{MPI Implementation: Master-Worker Paradigm}
 \label{par:mpi_implementation}
-The MPI solver implements a distributed master-worker model suitable for cluster environments:
+\sd{note that for MPI 1 CPU w.h. sequential (only master cannot do jobs)}
+Here are the most interesting aspects about our MPI solution. From an high level point of view, given P as the number of Processes which are defined, the MPI solver implements a distributed master-worker model suitable for cluster environments:
 
 \begin{enumerate}
     \item \textbf{Master Process (Rank 0):}
     \begin{itemize}
-        \item Broadcasts puzzle to all workers
-        \item Generates and manages work unit pool
-        \item Distributes work on demand
-        \item Collects solutions and coordinates termination
+        \item Broadcasts puzzle to all workers.
+        \item Generates and manages work unit pool.
+        \item Distributes work on demand.
+        \item Collects solutions and coordinates termination.
     \end{itemize}
     
     \item \textbf{Worker Processes (Ranks 1 to P-1):}
     \begin{itemize}
-        \item Request work units from master
-        \item Apply partial solutions and continue search
-        \item Report solutions back to master
+        \item Request work units from master.
+        \item Apply partial solutions and continue search.
+        \item Report solutions back to master.
     \end{itemize}
 \end{enumerate}
 
-The communication protocol uses tagged messages for clarity:
+For clarity, we are also presenting in \Cref{listing:message_tags} the tags which our communication protocol leverages in order to achieve the aforementioned flow.
 
-\begin{lstlisting}[language=C, caption=MPI communication tags]
+\begin{lstlisting}[language=C, caption=MPI communication tags, label={listing:message_tags}]
 typedef enum {
     TAG_WORK_REQUEST = 1,
     TAG_SOLUTION_FOUND = 2,
@@ -136,15 +140,19 @@ typedef enum {
     TAG_WORK_ASSIGNMENT = 5
 } MessageTag;
 \end{lstlisting}
-
+\sd{explain more this part as it is way too vague.}
 This design enables dynamic load balancing—workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty.
 
 
 \paragraph{OpenMP Implementation: Task-Based Parallelism}
 \label{par:omp_implementation}
-Our OpenMP solver leverages task-based parallelism for shared-memory systems. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads:
+We can now move towards our OpenMP solver leverages task-based parallelism for shared-memory systems. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads. In \Cref{listing:omp_algorithm} we present the most important snippet of code, which is the one used by the threads/workers to find the solution.
 
-\begin{lstlisting}[language=C, caption=OpenMP task generation]
+From an high level point of view, once the precoloring phase is performed and constant propagation, it means that the master thread can give each worker the puzzle with a partial solution, and once one finds one, sets the flag \textit{found\_solution} to true, effectively stopping every other thread as a solution is found. 
+
+\wen{omp gives inconsistent results when running on one thread only - can be double the time like for 11x11h5 or a fraction like for 9x9h1. let me investigate this.}
+
+\begin{lstlisting}[language=C, caption=OpenMP task generation, label={listing:omp_algorithm}]
 #pragma omp parallel
 {
     #pragma omp single
@@ -182,10 +190,13 @@ Our OpenMP solver leverages task-based parallelism for shared-memory systems. Af
 
 Key features include:
 \begin{itemize}
-    \item \textbf{Dynamic Scheduling:} OpenMP runtime automatically balances tasks across threads
-    \item \textbf{Early Termination:} Shared flag enables immediate termination upon solution discovery
-    \item \textbf{Configurable Factor:} Task generation multiplier allows performance tuning
+    \item \textbf{Dynamic Scheduling:} OpenMP runtime automatically balances tasks across threads.
+    \item \textbf{Early Termination:} Due to the fact that we have the shared variable \textit{solution\_found}, this means that it is not required that every single thread explores all possible solutions. This leads to several fold improvements as probabilistically speaking it is quite hard for the solution to be found at the N-th puzzle solved.
+    \item \textbf{Configurable Factor:} We have a dynamic task generation factor which allows to assess the ratio between available threads and jobs to be created, so that one could determine the amount of "stress" to put to the system.
 \end{itemize}
+
+
+\sd{put dataflow analysis here}
 
 \paragraph{Hybrid Implementation: Combining MPI and OpenMP}
 \label{par:hybrid_implementation}

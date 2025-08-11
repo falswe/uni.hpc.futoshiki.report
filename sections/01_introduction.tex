@@ -19,24 +19,26 @@ Given this constraint, knowing that by the \textbf{Latin Square} property the va
 \begin{figure}[H]
 \centering
 \includegraphics[scale=0.45]{imgs/futoshiki_example.png}
-\caption{example of a Futoshiki puzzle and its solved counterpart.}
+\caption{example of a Futoshiki puzzle and its solved counterpart. \wen{add sen and diner paper as reference}}
     \label{fig:futoshiki_example}
 \end{figure}
 
 
-From an high level point of view, one could say it is similar to the more known \textit{Sudoku}, and it is true as both of these puzzles have as their main constraint the aforementioned \textit{Latin Square} property. The similarities among those are not only to be found at a conceptual level, but also looking at it from a computer science point of view, specifically from a computational complexity standpoint, both of them lie in the family of NP-Complete problems. 
+From a high level point of view, one could say it is similar to the more known \textit{Sudoku}, and it is true as both of these puzzles have as their main constraint the aforementioned \textit{Latin Square} property. The similarities among those are not only to be found at a conceptual level, but also looking at it from a computer science point of view, specifically from a computational complexity standpoint, both of them lie in the family of NP-Complete problems. 
 
 As for the complexity of Futoshiki, it is presented by Şen and Diner in \cite{Sen2024Futoshiki}. This means that while simple backtracking algorithms guarantee a solution, their exponential time complexity renders them impractical for large grids. In the aforementioned paper, a more sophisticated approach is presented: conceptually Futoshiki puzzle can be transformed into a list coloring problem. This finding introduces a pre-coloring phase that propagates constraints to reduce possible values for each cell, significantly pruning the search space of the backtracking algorithm before the recursive search begins.
+
 
 However, even with these optimizations, solving large or difficult puzzles is going to demand substantial computational resources. High-Performance Computing (HPC) makes it possible to overcome these limitations through parallelization across multiple processors. In this paper we present a comprehensive parallel solution for the Futoshiki puzzle that explores three distinct parallelization paradigms:
 
 \begin{enumerate}
-    \item \textbf{Shared-Memory Parallelism (OpenMP):} \cite{OpenMP2020} Exploiting multi-core architectures through task-based parallelism within a single node.
     \item \textbf{Distributed-Memory Parallelism (MPI):} \cite{MPIForum2021} Leveraging a dynamic master-worker approach to be able to scale across multiple nodes.
+    \item \textbf{Shared-Memory Parallelism (OpenMP):} \cite{OpenMP2020} Exploiting multi-core architectures through task-based parallelism within a single node.
     \item \textbf{Hybrid Parallelism (MPI+OpenMP):} Combining both paradigms to maximize resource utilization.
 \end{enumerate}
 
-Among our contributions, the most important ones are:
+\sd{check after results}
+the most important ones are:
 \begin{itemize}
     \item An efficient sequential solver implementing the pre-coloring optimization algorithm presented in the Futoshiki paper as a performance baseline.
     \item An algorithm which dynamically performs fundamental puzzle solving before assigning to the different working units, based on the available parallelism, unlike work of the art solutions which employ a static work distribution.

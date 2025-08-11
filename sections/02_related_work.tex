@@ -2,13 +2,18 @@
 \label{sec:related_work}
 As our work builds upon and extends the solutions presented in the Futoshiki paper, in order for the reader to have a better understanding on the terminologies and techniques used, in this section we present all of the necessary relevant informations, also proposing how our solution is going to impact and build upon the state of the art (or concepts) presented in each subsection. 
 
-We start in \Cref{subsec:csp} by giving an explanation of the Constraint Satisfaction and Propagation. In \Cref{subsec:backtrack} then move towards a brief recap of how backtrack can be leveraged to solve this problem. We continue in explaining how MPI and OMP are used in 'Irregular Problems' in \Cref{subsec:mpi_omp_irregular_problems}. We move to an high level view of the state of puzzle solving algorithms in \Cref{subsec:puzzle_solving_algorithms}. We then wrap up by presenting how load balancing is used in parallel computing in \Cref{subsec:load_balancing_in_parallel_computing} and also some considerations in the implications of leveraging HPC in the era of AI in \Cref{subsec:hpc_in_ai}.
+We start in \Cref{subsec:csp} by giving an explanation of the Constraint Satisfaction and Propagation. In \Cref{subsec:backtrack} then move towards a brief recap of how backtrack can be leveraged to solve this problem. We continue in explaining how MPI and OMP are used in 'Irregular Problems' in \Cref{subsec:mpi_omp_irregular_problems}. We move to an high level view of the state of puzzle solving algorithms in \Cref{subsec:puzzle_solving_algorithms}. We then wrap up by presenting how load balancing is used in parallel computing in \Cref{subsec:load_balancing_in_parallel_computing}.
 
 \subsection{Constraint Satisfaction and Propagation}
 \label{subsec:csp}
 The foundation of our approach lies in constraint propagation techniques: After Adamu-Fika showed in \cite{sudoku_csp} that it is possible to transform Sudoku leveraging CSP, Norvig's work on Sudoku solving \cite{NorvigSudoku} demonstrated the power of constraint propagation combined with search, achieving several fold speedups over naive backtracking. Our pre-coloring phase extends these ideas specifically for Futoshiki's inequality constraints.
+\sd{here we say reduction of search space in polynomial time blablabla}
 
-The transformation of Futoshiki into a list coloring problem, as proposed by Şen and Diner \cite{Sen2024Futoshiki}, provides the theoretical foundation for our implementation. Their work showed that viewing the puzzle through the lens of graph coloring enables more sophisticated pruning strategies compared to naive backtracking strategies. Our work therefore starts from here, by implementing their sequential algorithm proposed in this paper, in order to construct a base reference for our solutions. We then follow up by implementing parallel solving strategies such as MPI, OMP, and an hybrid solution.
+The transformation of Futoshiki into a list coloring problem, as proposed by Şen and Diner \cite{Sen2024Futoshiki}, provides the theoretical foundation for our implementation. Their work showed that viewing the puzzle through the lens of graph coloring enables more sophisticated pruning strategies compared to naive backtracking strategies. 
+
+The main concept in which this solution is proposed is stated in \textit{Theorem 1} of such paper, which affirms that for every instance of the Futoshiki problem \textbf{F\_n(T,S)} -- where an instance is defined by denoting with \textbf{S} the Set of inequality constraints, \textbf{T} the set of assigned cells, and \textbf{n} the grid size -- exists a List Precoloring instance \textbf{$\mathcal{L}$\_G(c\_w,L} -- where \textbf{L} is the List of valid assignments and \textbf{c\_w} the map to assign each vertex a color -- such that k=n. They also show that this approach effectively reduces the total execution time w.r.t. the naif brute force backtracking approach.
+
+Our work therefore starts from here, by implementing their sequential algorithm proposed in this paper, in order to construct a base reference for our solutions. We then follow up by implementing parallel solving strategies such as MPI, OMP, and an hybrid solution.
 
 
 One might ask himself "Why do we need to parallalize this problem if there is already a linear solution?". The response is quite straightforward: after Colbourn's work \cite{Colbourn1984} on the complexity of Latin Square completion established the NP-completeness of the problem class, he followed up by motivating the need for efficient heuristics and parallel approaches. Haraguchi and Ono \cite{Haraguchi2014} further analyzed the approximability of Latin Square completion puzzles, providing insights into the theoretical limits of polynomial-time algorithms.
@@ -25,6 +30,7 @@ Research on parallel backtracking typically focuses on either shared-memory or d
 
 \subsection{MPI and OpenMP for Irregular Problems}
 \label{subsec:mpi_omp_irregular_problems}
+\wen{Do we keep this? Could be super nice, but let's double check the references!}
 The MPI standard \cite{MPIForum2021} and OpenMP specification \cite{OpenMP2020} provide the foundation for our parallel implementations. Gropp et al. \cite{Gropp1999} discuss various MPI programming patterns, including the master-worker model we adapt for dynamic load balancing.
 
 Rabenseifner et al. \cite{Rabenseifner2009} specifically address hybrid MPI/OpenMP programming, analyzing the benefits and challenges of combining both paradigms. Their work on multi-core clusters directly influenced our hybrid implementation design. We extend their findings by demonstrating that careful management of task \textit{generation factors} to decide whether to rely more on MPI or open mp is crucial for optimal performance.
@@ -47,14 +53,6 @@ Load balancing for irregular problems remains an active research area. Static ap
 
 The concept of oversubscription, it being creating more tasks than workers is well-established in parallel computing. We are also going to present a study of the task generation factor's impact on performance, showing that 4-8× oversubscription optimally balances parallelism with overhead for constraint satisfaction problems.
 \sd{this goes into the evaluation part, we cannot present results here}
-
-\subsection{High-Performance Computing for AI}
-\label{subsec:hpc_in_ai}
-Due to the hype surrounding AI, the intersection of HPC and it has gained significant attention over the recent years. While much focus is on machine learning, combinatorial optimization and constraint satisfaction remain important applications. Our work demonstrates that traditional AI techniques like backtracking can benefit substantially from modern parallel computing infrastructure.
-
-\sd{check this out -- if it is good, I have the bibtex ready}
-
-Beyond machine learning, many real-world problems in science and industry can be formulated as large-scale combinatorial optimization or constraint satisfaction problems (CSPs), where backtracking-based search remains a competitive solution strategy. For example, airline crew scheduling — assigning thousands of crew members to flights while respecting legal rest, skill, and pairing constraints — has been accelerated using parallelized branch-and-bound algorithms, reducing solution times from hours to minutes on HPC clusters [Abdel-Basset et al., 2020]. In astronomy, the Hubble Space Telescope scheduling problem involves satisfying complex orbital, resource, and priority constraints; parallel constraint propagation has enabled near real-time generation of feasible schedules [Johnston \& Miller, 1994]. Even in recreational domains, CSP benchmarks such as Sudoku have served as scalable testbeds for massively parallel backtracking, achieving over 100× speedups on GPU-based systems [Matsumoto et al., 2013]. These examples illustrate that traditional AI techniques can benefit substantially from modern parallel computing infrastructure, enabling the solution of problems previously deemed intractable.
 
 
 \sd{also here, this is part of the findings and we cannot showcase here}
