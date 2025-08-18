@@ -1,7 +1,19 @@
 \section{Experimental Evaluation}
 \label{sec:evaluation}
 
+In this section we are going to present the results gotten from our experimental evaluation.
+
+\sd{quando hai definito i paragrafi linkali}
+
+
+\subsection{Can we evaluate difficulty of a Futoshiki before solving it?}
+It is important to stop for a moment and assess a crucial factor: as we have already explained in \Cref{subsec:backtrack} how Futoshiki has dynamic placed constraints, which in turn implies that the assumption we can make on the input are less strict w.r.t. Sudoku. This means that by receiving as input only the number of constraints, without knowing whey they are placed and how they are intertwined one to another, it is extremely hard to define the actual "difficulty" of the problem. It is easy to see that with a simple manipulation of the constraints presented in \Cref{fig:futoshiki_example}, one could not have easily understood the chain between values 1-4. Another factor to take into account is where the initial numbers are placed and how many we have. It is true that the more that we have, the more variables we can fix and therefore the less big the search spaces becomes, but if those constraints are placed in a "bad way", one could not find the solution easily.
+
+\sd{do we have evidence to support this?}
+We can also say that the "size matters" in this case it not strictly true. One could imagine a puzzle of a specific size and one of a slightly bigger size: let's say 5x5 and 6x6. Given those as inputs, as the correlation among constraint is so important that just like for the amount of numbers placed, they might not lead to an "easier" or "harder" puzzle by default.
+
 \subsection{Experimental Setup}
+To wrap up this consideration, we can safely say that if we are only given number of constraints, number of initialized cells and size of the problem it is not possible to give a precise estimate over a metric to evaluate the "difficulty" of the problem.
 All experiments were conducted on a high-performance computing cluster with the following specifications:
 \begin{itemize}
     \item \textbf{Hardware:} 126 nodes with Intel Xeon processors

@@ -109,25 +109,43 @@ As we can see in \Cref{listing:calculate_distribution_depth}, the algorithm expl
 
 \paragraph{MPI Implementation: Master-Worker Paradigm}
 \label{par:mpi_implementation}
-\sd{note that for MPI 1 CPU w.h. sequential (only master cannot do jobs)}
 Here are the most interesting aspects about our MPI solution. From an high level point of view, given P as the number of Processes which are defined, the MPI solver implements a distributed master-worker model suitable for cluster environments:
 
 \begin{enumerate}
     \item \textbf{Master Process (Rank 0):}
     \begin{itemize}
-        \item Broadcasts puzzle to all workers.
-        \item Generates and manages work unit pool.
-        \item Distributes work on demand.
-        \item Collects solutions and coordinates termination.
+        \item Performs precoloring and fills out a basic version of the puzzle.
+        \item Based on the \textit{configuration factor} given, decides the ratio of jobs to CPUs(puzzles to be solved) by evaluating the depth of the backtracking approach and opens the port to listen to the slaves.
+        \item Sends 1 job to each worker via the \textit{TAG\_WORK\_ASSIGNMENT}.
+        \item If a worker does not solve the job, he receives the message and sends a new job via the same tag as the previous point. If the solution is found, it broadcasts to every other worker to stop as the solution is found via a broadcast of the \textit{TAG\_TERMINATE}. Again, remember that due to the problem statement, we know that given 1 Futoshiki puzzle there exists 1 and only 1 solution. This serves as a validation to the correctness of our approach.
+        \item Collects the solution found and sends it to the user.
     \end{itemize}
     
     \item \textbf{Worker Processes (Ranks 1 to P-1):}
     \begin{itemize}
-        \item Request work units from master.
-        \item Apply partial solutions and continue search.
-        \item Report solutions back to master.
+        \item Polls master by asking for a job to solve via the \textit{TAG\_WORK\_REQUEST}.
+        \item Tries to solve the pre colored puzzle given. If it manages, it sends a \textit{TAG\_SOLUTION\_FOUND} followed by the \textit{TAG\_SOLUTION\_DATA}, else it sends again a \textit{TAG\_WORK\_REQUEST}.
+        \item Upon receiving from the master the \textit{TAG\_TERMINATE}, as this means that a solution was found, it gracefully shuts down.
     \end{itemize}
 \end{enumerate}
+
+\sd{here is a sequence diagram to better explain our approach to the reader.}
+% Worker[i]                       Master (Rank 0)
+%    |                                 |
+%    |------ TAG\_WORK\_REQUEST --------->|  Worker asks for a job
+%    |                                 |
+%    |<----- TAG\_WORK\_ASSIGNMENT ------|  Master sends work unit
+%    |                                 |
+%    |--compute work (precolor + backtracking)-->|
+%    |                                 |
+%    |--- TAG\_SOLUTION\_FOUND ---------->|  Worker found solution (if success)
+%    |--- TAG\_SOLUTION\_DATA ----------->|  Worker sends actual solution
+%    |                                 |
+%    |<----- TAG\_TERMINATE ------------|  Master tells worker to stop
+%    |                                 |
+%    |----- Worker exits --------------|
+
+A careful reader might have already recognized that there is a corner case for which this approach is not feasible. It is the case if we only have 1 CPU, as being this a master-worker approach, we cannot have a master to tell no one what to do, or a worker which does not know what to do. Therefore, to avoid our single thread to be "overly specialized" -- as of either manages or works, in the case in which we have only 1 CPU available we fallback to the sequential implementation.
 
 For clarity, we are also presenting in \Cref{listing:message_tags} the tags which our communication protocol leverages in order to achieve the aforementioned flow.
 
@@ -140,7 +158,6 @@ typedef enum {
     TAG_WORK_ASSIGNMENT = 5
 } MessageTag;
 \end{lstlisting}
-\sd{explain more this part as it is way too vague.}
 This design enables dynamic load balancing—workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty.
 
 
@@ -191,23 +208,36 @@ From an high level point of view, once the precoloring phase is performed and co
 Key features include:
 \begin{itemize}
     \item \textbf{Dynamic Scheduling:} OpenMP runtime automatically balances tasks across threads.
-    \item \textbf{Early Termination:} Due to the fact that we have the shared variable \textit{solution\_found}, this means that it is not required that every single thread explores all possible solutions. This leads to several fold improvements as probabilistically speaking it is quite hard for the solution to be found at the N-th puzzle solved.
-    \item \textbf{Configurable Factor:} We have a dynamic task generation factor which allows to assess the ratio between available threads and jobs to be created, so that one could determine the amount of "stress" to put to the system.
+    \item \textbf{Early Termination:} Due to the fact that we have the shared variable \textit{solution\_found}, this means that it is not required that every single thread explores all possible solutions. This leads to several fold improvements as probabilistically speaking it is quite unlikely for the solution to be found at the N-th puzzle solved.
+    \item \textbf{Configurable Factor:} We have a dynamic task generation \textit{factor} which allows to assess the ratio between available threads and jobs to be created, so that one could determine the amount of "stress" to put to the system.
 \end{itemize}
 
 
+\sd{this is the optimization for 1 thread}
+Here the careful reader might be surprised to find that also here we are leveraging the sequential solution if we only have 1 thread running. Given the proposed architecture, it is capable of running with 1 thread only, then why is this done? The reason is twofold:
+\begin{itemize}
+    \item In order to make our future comparison with MPI as interesting as possible, we have decided to keep the two designs as close as possible from an interface point of view.
+    \item Not having overhead given by code expansion and extra metadata being inserted during compile time, as we would not use that extra capabilities with just 1 process running, we decided to rely on the more efficient sequential for this corner case.
+\end{itemize}
+
+Of course, this solution does not rely on message passing and therefore it does not require to define any additional structure, but rather by relying on the macros defined we are able to decide which variables are going to be shared or not, therefore \textit{early termination} still occurs also in this solution but leveraging the shared variable instead of the messages. 
+
+Here is our dataflow analysis for our proposed solution:
 \sd{put dataflow analysis here}
 
 \paragraph{Hybrid Implementation: Combining MPI and OpenMP}
 \label{par:hybrid_implementation}
-The hybrid solver exploits both distributed and shared memory parallelism:
 
+We are now going to present out hybrid solution, which aims at exploiting both the distributed message passing provided by MPI and combining it with the shared memory parallelism offered by OMP. In order to make the comparison among versions as similar as possible, we have thought of a two layer approach:
 \begin{itemize}
-    \item \textbf{Inter-node:} MPI distributes coarse-grained work units across nodes
-    \item \textbf{Intra-node:} OpenMP further parallelizes each work unit within a node
+    \item \textbf{Outer Layer:} This is the Inter-node part of our solution and relies on MPI, which distributes coarse-grained work units across nodes. The idea is that by abstracting away the two approaches while keeping the API commons w.r.t to the MPI and OMP solution, this part effectively behaves just like the MPI counter variant.
+    \item \textbf{Inner Layer:} This is the Intra-node part of our solution and of course relies on OpenMP, which further parallelizes each work unit within a node. The idea is that the MPI serves as a wrapper over the message passing, coordination and generation of tasks, whereas the inner OMP serves to optimize the solving time of each node.
 \end{itemize}
 
-\begin{lstlisting}[language=C, caption=Hybrid worker with nested parallelism]
+
+By combining this approach by having common APIs, we are able to let MPI behave as if the nodes are normal ones, and we make possible for OMP to work in parallel. Of coruse, as MPI is used to orchestrate the whole job decision and message passing, once a solution is found by a worker, we have to rely on the message passing strategy provided by MPI, and again this is done so that the comparison in performance w.r.t. the other two solution would be as seamless as possible.
+
+\begin{lstlisting}[language=C, caption=Hybrid worker with nested parallelism, label={listing:hybrid_worker}]
 static void hybrid_worker(Futoshiki* puzzle) {
     WorkUnit work_unit;
     MPI_Status status;
@@ -241,4 +271,4 @@ static void hybrid_worker(Futoshiki* puzzle) {
 }
 \end{lstlisting}
 
-This two-level approach maximizes resource utilization on modern HPC clusters where nodes contain many cores. The implementation carefully manages the task generation factors at both levels to prevent oversubscription while ensuring sufficient parallelism.§
+In \Cref{listing:hybrid_worker} we present the core of the solution, which is the code of the hybrid worker. Due to the design choices made, we can see how we are effectively relying on the APIs provided from MPI and OMP, therefore reusing already existing code without having to write already defined solving logic.
