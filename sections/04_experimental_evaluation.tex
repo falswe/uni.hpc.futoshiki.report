@@ -7,46 +7,81 @@ In this section we are going to present the results gotten from our experimental
 
 
 \subsection{Can we evaluate difficulty of a Futoshiki before solving it?}
-It is important to stop for a moment and assess a crucial factor: as we have already explained in \Cref{subsec:backtrack} how Futoshiki has dynamic placed constraints, which in turn implies that the assumption we can make on the input are less strict w.r.t. Sudoku. This means that by receiving as input only the number of constraints, without knowing whey they are placed and how they are intertwined one to another, it is extremely hard to define the actual "difficulty" of the problem. It is easy to see that with a simple manipulation of the constraints presented in \Cref{fig:futoshiki_example}, one could not have easily understood the chain between values 1-4. Another factor to take into account is where the initial numbers are placed and how many we have. It is true that the more that we have, the more variables we can fix and therefore the less big the search spaces becomes, but if those constraints are placed in a "bad way", one could not find the solution easily.
+\label{subsec:futoshiki_difficulty}
+It is important to stop for a moment and assess a crucial factor: as we have already explained in \Cref{subsec:backtrack} how Futoshiki has dynamic placed constraints, which in turn implies that the assumption we can make on the input are less strict w.r.t. Sudoku. This means that by receiving as input only the number of constraints, without knowing whey they are placed and how they are intertwined one to another, it is extremely hard to define the actual "difficulty" of the problem. It is easy to see that with a simple manipulation of the constraints presented in \Cref{fig:futoshiki_example}, one could not have easily understood the chain between values 1-4. Another factor to take into account is where the initial numbers are placed and how many we have. It is true as the number of constraints that we have increases, the more variables we can fix and therefore the less big the search spaces becomes, but if those constraints are placed in a "bad way", one could not find the solution easily.
 
 \sd{do we have evidence to support this?}
-We can also say that the "size matters" in this case it not strictly true. One could imagine a puzzle of a specific size and one of a slightly bigger size: let's say 5x5 and 6x6. Given those as inputs, as the correlation among constraint is so important that just like for the amount of numbers placed, they might not lead to an "easier" or "harder" puzzle by default.
+We can also say that the "size matters" in this case it not strictly true. One could imagine a puzzle of a specific size and one of a slightly bigger size: let's say 9x9 and 10x10. Given those as inputs, as the correlation among constraint is so important that just like for the amount of numbers placed, they might not lead to an "easier" or "harder" puzzle by default.
+To wrap up this consideration, we can safely say that if we are only given number of constraints, number of initialized cells and size of the problem it is not possible to give a precise estimate over a metric to evaluate the "difficulty" of the problem.
 
 \subsection{Experimental Setup}
-To wrap up this consideration, we can safely say that if we are only given number of constraints, number of initialized cells and size of the problem it is not possible to give a precise estimate over a metric to evaluate the "difficulty" of the problem.
+We now move onto some first consideration on the underlying Hardware, to have an idea of what the numbers that we are going to see actuallyh mean.
+
 All experiments were conducted on a high-performance computing cluster with the following specifications:
 \begin{itemize}
-    \item \textbf{Hardware:} 126 nodes with Intel Xeon processors
-    \item \textbf{Network:} 10Gb/s Ethernet with Infiniband/Omnipath options
-    \item \textbf{Software:} Linux CentOS 7, GCC 9.1, MPICH 3.2
-    \item \textbf{Test Cases:} Various puzzles from 5×5 to 11×11, including "hard" instances
+    \item \textbf{Hardware:} 126 nodes with Intel Xeon processors.
+    \item \textbf{Network:} 10Gb/s Ethernet with Infiniband/Omnipath options.
+    \item \textbf{Software:} Linux CentOS 7, GCC 9.1, MPICH 3.2.
+    \item \textbf{Test Cases:} Various puzzles from 5×5 to 11×11, including "hard" instances.
 \end{itemize}
 
 \subsection{Impact of Pre-coloring Optimization}
-Table \ref{tab:precolor_impact} demonstrates the dramatic performance improvement from pre-coloring on a challenging 9×9 puzzle:
+\label{subsec:precoloring_performance}
+As we have already discussed in \Cref{par:precoloring}, the precoloring procedure helps us at doing some pre computation, which in turn lets us reduce the search space of our solution. In \Cref{fig:precoloring_improvement} we see how by performing precoloring gives us better results w.r.t. the standard brute force approach. In the X axis we have 3 different 9x9 problems to be solved, and in the Y axis the total time measured in seconds for \textit{the solving time of our algorithm only}.
 
-\begin{table}[htbp]
-\caption{Pre-coloring Impact on 9×9 Hard Puzzle}
-\begin{center}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-\textbf{Metric} & \textbf{Without} & \textbf{With} \\
-& \textbf{Pre-coloring} & \textbf{Pre-coloring} \\
-\midrule
-Pre-coloring Time (s) & 0.0000 & 0.0152 \\
-Solving Time (s) & 12.4531 & 0.8734 \\
-Total Time (s) & 12.4531 & 0.8886 \\
-Colors Removed & 0 & 487 \\
-Search Space Reduction & 0\% & 82.3\% \\
-\midrule
-\textbf{Speedup} & \multicolumn{2}{c}{\textbf{14.01×}} \\
-\bottomrule
-\end{tabular}
-\end{center}
-\label{tab:precolor_impact}
-\end{table}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{imgs/precoloring_comparison.pdf}
+\caption{Comparison of execution times for some 9x9 futoshiki problems}
+\label{fig:precoloring_improvement}
+\end{figure}
 
-The pre-coloring phase removes over 80\% of possible values, reducing the effective branching factor and achieving a 14× speedup despite the additional preprocessing overhead.
+
+This figure lets us understand that by employing this technique we can see up to 54x speedup, like in the case of the instance \textit{9x9\_hard\_3}. This means that even if we have a little bit of overhead to apply the list coloring solution, we can still see great improvements over the baseline. For this reason we chose to employ precoloring on all of the following case studies, so that we both reduce the amount of variables in our comparison while introducing several fold speedup in our proposed solution.
+
+\subsection{What the factor are we talking about?}
+We have already mentioned that our solutions have a parameter presented as \textit{Configurable Factor}. We said that this factor lets us tweak the ratio between the jobs being scheduled and the underlying computational unit(either a thread for the OpenMP case, or a CPU for the MPI one). From an high level point of view we can think it as a knob that lets us choose at our will the amount of "pressure" that we are putting the underlying system in.
+
+From a more formal point of view, given a factor F and the number of underlying computational units C, our preprocessing algorithm aims at going deeper and deeper into the search space by exploring the backtrack tree until it does not find an amount of puzzles P such that:
+\[
+    F \leq P * C
+\]
+
+This lets us play around to find the best possible ratio, which therefore lets us find the maximum amount of "stress" to put our computational units at before we have generated too many jobs for them.
+
+In fact, we have run several tests to assess which factor could be the best one to choose from, so we now present our \textit{Factor Analysis} that we have devised to pick it.
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{imgs/factor_analysis_mpi_9x9_hard_1.pdf}
+\caption{factor analysis for MPI}
+\label{fig:factor_analysis_mpi}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{imgs/factor_analysis_omp_9x9_hard_1.pdf}
+\caption{factor analysis for OMP}
+\label{fig:factor_analysis_omp}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{imgs/factor_analysis_hybrid_9x9_hard_1.pdf}
+\caption{factor analysis for hybrid solution}
+\label{fig:factor_analysis_hybrid}
+\end{figure}
+
+From \Cref{fig:factor_analysis_mpi} and \Cref{fig:factor_analysis_omp} we can see that we have a good slope in the decreasing of the solving time of our solution with 16 processors/threads up until 64, and then we start to stabilize. In order to keep things simple, we have opted for this value.
+
+As for the hybrid, we have faced the issue on "how can we evaluate MPI and OMP solutions"? In order to provide some interesting results, we have decided to abstract away from the actual implementation of the worker (MPI or OMP), and we have therefore decided to treat a processor in MPI as the same as the threads for OMP. This modeling simplification is going to help us in \Cref{subsec:hybrid_results} when evaluating how the hybrid solution works under several different configurations.
+
+After having taken this necessary detour, we can move towards finding the best factor for the hybrid one: we can see from \Cref{fig:factor_analysis_hybrid} that if we consider the symmetric factor 8, which means setting Mpi Factor to 8 and Openmp Factor to 8, if we take this approximation into account (considering processors = threads), we can see how 8*8=64 is also a fairly good factor in this case.
+
+
+For this reason, we have decided to set for the following runs MPI and OMP factor to 64, and for the hybrid the MPI Factor to 8 and its symmetric counterpart to 8, so that we would have a factor of 64 "computational units" across the board.
+
 
 \subsection{Parallel Performance Analysis}
 
@@ -135,7 +170,7 @@ We investigated the impact of the task generation factor—a multiplier that con
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{images/task_factor_analysis.png}
+\includegraphics[width=0.9\linewidth]{images/precoloring }
 \caption{Performance impact of task generation factor for 64 cores. Optimal performance occurs around factor = 4-8.}
 \label{fig:task_factor}
 \end{figure}
