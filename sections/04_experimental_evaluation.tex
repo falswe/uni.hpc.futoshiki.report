@@ -16,6 +16,8 @@ It is important to stop for a moment and assess a crucial factor: as we have alr
 We can also say that the "size matters" in this case it not strictly true. One could imagine a puzzle of a specific size and one of a slightly bigger size: let's say 9x9 and 10x10. Given those as inputs, as the correlation among constraint is so important that just like for the amount of numbers placed, they might not lead to an "easier" or "harder" puzzle by default.
 To wrap up this consideration, we can safely say that if we are only given number of constraints, number of initialized cells and size of the problem it is not possible to give a precise estimate over a metric to evaluate the "difficulty" of the problem.
 
+\sd{weak scalability cannot be established a priori}
+
 \subsection{Experimental Setup}
 We now move onto some first consideration on the underlying Hardware, to have an idea of what the numbers that we are going to see actuallyh mean.
 
@@ -56,21 +58,21 @@ In fact, we have run several tests to assess which factor could be the best one 
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{imgs/factor_analysis_mpi_9x9_hard_1.pdf}
+\includegraphics[width=0.9\linewidth]{imgs/factor_mpi_9x9_hard_2.pdf}
 \caption{factor analysis for MPI}
 \label{fig:factor_analysis_mpi}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{imgs/factor_analysis_omp_9x9_hard_1.pdf}
+\includegraphics[width=0.9\linewidth]{imgs/factor_omp_9x9_hard_2.pdf}
 \caption{factor analysis for OMP}
 \label{fig:factor_analysis_omp}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{imgs/factor_analysis_hybrid_9x9_hard_1.pdf}
+\includegraphics[width=0.9\linewidth]{imgs/factor_hybrid_9x9_hard_2.pdf}
 \caption{factor analysis for hybrid solution}
 \label{fig:factor_analysis_hybrid}
 \end{figure}
@@ -109,7 +111,7 @@ We can see that for 1 and 2 we have values which are in the range of the sequent
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{imgs/comparison_solving_time_9x9_hard_1.pdf}
+\includegraphics[width=0.9\linewidth]{imgs/solving_time_mpi_omp_9x9_hard_2.pdf}
 \caption{Solving time comparison for a 9x9 instance}
 \label{fig:comparison_solving_time_9x9}
 \end{figure}
@@ -126,7 +128,7 @@ For such reasons, we are going to move to analyze only the family of 9x9 instanc
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{imgs/comparison_solving_time_10x10_65.pdf}
+\includegraphics[width=0.9\linewidth]{imgs/solving_time_mpi_omp_10x10_65.pdf}
 \caption{Solving time comparison for a 10x10 instance}
 \label{fig:comparison_solving_time_10x10}
 \end{figure}
@@ -151,7 +153,7 @@ An interesting takeaway from this plot is that while we reach a speedup which is
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{imgs/comparison_speedup_9x9_hard_1.pdf}
+\includegraphics[width=0.9\linewidth]{imgs/speedup_mpi_omp_9x9_hard_2.pdf}
 \caption{Speedup of parallel solutions}
 \label{fig:speedup_9x9}
 \end{figure}
@@ -172,7 +174,7 @@ This parameter is basically relating the speedup(how well the parallel solution 
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.9\linewidth]{imgs/comparison_efficiency_9x9_hard_1.pdf}
+\includegraphics[width=0.9\linewidth]{imgs/efficiency_mpi_omp_9x9_hard_2.pdf}
 \caption{Efficiency of parallel solutions}
 \label{fig:efficiency_9x9}
 \end{figure}
