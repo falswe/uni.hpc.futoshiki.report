@@ -1,16 +1,16 @@
 \section{Solution Proposed}
 \label{sec:solution}
 
-We now present our findings and solutions in solving Futoshiki puzzle. We start in \Cref{subsec:paper_implementation} by first understanding how the sequential algorithm proposed by Şen and Diner in \cite{Sen2024Futoshiki} work. In this section we dive into how the precoloring works in \Cref{par:precoloring} and we wrap up by understanding how the backtrack with CSP helps us solve the problem in \Cref{par:backtrack_with_csp}
+We now present our findings and solutions in solving Futoshiki puzzle. We start in \Cref{subsec:paper_implementation} by first understanding how the sequential algorithm proposed by Şen and Diner in \cite{Sen2024Futoshiki} work. In this section we dive into how the precoloring works in \Cref{subsubsec:precoloring} and we wrap up by understanding how the backtrack with CSP helps us solve the problem in \Cref{subsubsec:backtrack_with_csp}
 
-After having obtained what is going to become our baseline in the validation, we move towards the parallel implementations in \Cref{subsec:parallel_implementation}: we start off by understanding how the dynamic load balancing works in \Cref{par:dynamic_load_balancing}, as it is a sophisticated algorithm at the base of every parallel implementation. We then move towards the MPI implementation in \cref{par:mpi_implementation}, then to the OpenMP implementation in \cref{par:omp_implementation} and finally to the hybrid implementation in \cref{par:hybrid_implementation}.
+After having obtained what is going to become our baseline in the validation, we move towards the parallel implementations in \Cref{subsec:parallel_implementation}: we start off by understanding how the dynamic load balancing works in \Cref{subsubsec:dynamic_load_balancing}, as it is a sophisticated algorithm at the base of every parallel implementation. We then move towards the MPI implementation in \cref{subsubsec:mpi_implementation}, then to the OpenMP implementation in \cref{subsubsec:omp_implementation} and finally to the hybrid implementation in \cref{subsubsec:hybrid_implementation}.
 
 \subsection{Implementing The Sequential Algorithm}
 \label{subsec:paper_implementation}
 Our implementation builds upon the list coloring transformation detailed by Şen and Diner in \cite{Sen2024Futoshiki}. This approach significantly outperforms naive backtracking by reducing the search space through constraint propagation before the recursive search begins. 
 
-\paragraph{Pre-coloring: Search Space Reduction}
-\label{par:precoloring}
+\subsubsection{Pre-coloring: Search Space Reduction}
+\label{subsubsec:precoloring}
 The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "possible color list" (pc\_list) for each cell through iterative constraint propagation:
 
 \begin{enumerate}
@@ -25,8 +25,8 @@ The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "
 
 This process often eliminates 70-90\% of possible values, dramatically reducing the search space complexity from $O(N^{N^2})$ to a much smaller effective branching factor.
 
-\paragraph{Backtracking with Constrained Search}
-\label{par:backtrack_with_csp}
+\subsubsection{Backtracking with Constrained Search}
+\label{subsubsec:backtrack_with_csp}
 After pre-coloring, the recursive backtracking function \texttt{seq\_color\_g} explores only values in each cell's reduced pc\_list:
 
 \begin{lstlisting}[language=C, caption=Sequential backtracking core, label={listing:precoloring}]
@@ -73,8 +73,8 @@ We now move towards the presentation of our parallel solutions. We start off wit
 
 The aforementioned algorithm to perform the pruning of the backtrack search space via list coloring runs in polynomial time. From a practical point of view, this means that, by spending "a little bit amount of time" in the precoloring phase, the speedup that we obtain is quite high. Now, as we know from Ahmdal's Law, given a specific "Enhancement" over the existing algorithm, we can represent the speedup over a machine which is running a process as the ratio among the execution time without said Enhancement over the execution time with it being applied. This means that, as the pre-coloring phase is quite fast already and that already is a good "Enhancement", and as the actual solving of the problem is non polynomial, it makes quite a lot of sense to shift our focus towards trying to obtain some Enhancement also for the non polynomial part of the algorithm, given the fact that making the precoloring algorithm does not take too much time. Furthermore, by the law of diminishing returns, it would not make too much sense to apply other enhancement and speedup on the precoloring, as that would not lead to another high increment over the execution time of the total solution.
 
-\paragraph{Multi-Level Work Generation Framework}
-\label{par:dynamic_load_balancing}
+\subsubsection{Multi-Level Work Generation Framework}
+\label{subsubsec:dynamic_load_balancing}
 All three parallel implementations share a sophisticated work generation strategy implemented in \texttt{parallel.c}. This framework dynamically determines the optimal depth for creating work units based on the target number of parallel workers.
 
 \begin{lstlisting}[language=C, caption=Dynamic depth calculation,label={listing:calculate_distribution_depth}]
@@ -107,8 +107,8 @@ As we can see in \Cref{listing:calculate_distribution_depth}, the algorithm expl
     \item \textbf{Adaptability:} Automatic adjustment based on puzzle difficulty and worker count.
 \end{itemize}
 
-\paragraph{MPI Implementation: Master-Worker Paradigm}
-\label{par:mpi_implementation}
+\subsubsection{MPI Implementation: Master-Worker Paradigm}
+\label{subsubsec:mpi_implementation}
 Here are the most interesting aspects about our MPI solution. From an high level point of view, given P as the number of Processes which are defined, the MPI solver implements a distributed master-worker model suitable for cluster environments:
 
 \begin{enumerate}
@@ -161,8 +161,8 @@ typedef enum {
 This design enables dynamic load balancing—workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty.
 
 
-\paragraph{OpenMP Implementation: Task-Based Parallelism}
-\label{par:omp_implementation}
+\subsubsection{OpenMP Implementation: Task-Based Parallelism}
+\label{subsubsec:omp_implementation}
 We can now move towards our OpenMP solver leverages task-based parallelism for shared-memory systems. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads. In \Cref{listing:omp_algorithm} we present the most important snippet of code, which is the one used by the threads/workers to find the solution.
 
 From an high level point of view, once the precoloring phase is performed and constant propagation, it means that the master thread can give each worker the puzzle with a partial solution, and once one finds one, sets the flag \textit{found\_solution} to true, effectively stopping every other thread as a solution is found. 
@@ -225,8 +225,8 @@ Of course, this solution does not rely on message passing and therefore it does 
 Here is our dataflow analysis for our proposed solution:
 \sd{put dataflow analysis here}
 
-\paragraph{Hybrid Implementation: Combining MPI and OpenMP}
-\label{par:hybrid_implementation}
+\subsubsection{Hybrid Implementation: Combining MPI and OpenMP}
+\label{subsubsec:hybrid_implementation}
 
 We are now going to present out hybrid solution, which aims at exploiting both the distributed message passing provided by MPI and combining it with the shared memory parallelism offered by OMP. In order to make the comparison among versions as similar as possible, we have thought of a two layer approach:
 \begin{itemize}
