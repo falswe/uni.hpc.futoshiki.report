@@ -6,10 +6,17 @@ This section establishes the theoretical foundation for our parallel Futoshiki s
 \label{subsec:list_coloring_foundation}
 Futoshiki belongs to the family of NP-Complete problems, with naive backtracking algorithms exhibiting exponential time complexity that renders them impractical for large grids. Şen and Diner \cite{Sen2024Futoshiki} demonstrated that Futoshiki can be transformed into a list coloring problem, enabling more sophisticated solution strategies.
 
-Their approach introduces a pre-coloring phase that propagates constraints to reduce possible values for each cell before recursive search begins. This constraint propagation runs in polynomial time while providing substantial practical speedup. Theorem 1 in their work formally establishes the equivalence between Futoshiki instances and List k-Precoloring Extension problems, providing the theoretical foundation for our implementation.
+Their approach introduces a pre-coloring phase that propagates constraints to reduce possible values for each cell before recursive search begins. While this constraint propagation does not change the fundamental NP-Complete nature of the problem, it achieves substantial practical improvement by reducing the search space in polynomial time. This preprocessing eliminates numerous branches from the backtracking tree before exploration begins, dramatically reducing total execution time despite the unchanged theoretical complexity.
 
-The list coloring transformation works by representing cells as graph vertices with adjacency based on row/column relationships, encoding inequality constraints as restrictions on possible color lists, and applying iterative constraint propagation to eliminate invalid possibilities. This approach typically reduces the effective search space by 70-90\%, transforming an intractable exponential search into a manageable computational problem.
+Theorem 1 in their work formally establishes the equivalence between Futoshiki instances and List k-Precoloring Extension problems. The list coloring transformation works by representing cells as graph vertices with adjacency based on row/column relationships, encoding inequality constraints as restrictions on possible color lists, and applying iterative constraint propagation to eliminate invalid possibilities. This approach typically reduces the effective search space by 70-90\%, transforming an intractable exponential search into a manageable computational problem.
 
+\subsection{Parallel Constraint Satisfaction}
+\label{subsec:parallel_csp}
+Parallel constraint satisfaction has been extensively studied, with approaches ranging from parallel constraint propagation to distributed search space exploration. Pacheco \cite{Pacheco2011} provides comprehensive coverage of parallel programming patterns, including the master-worker paradigm that handles dynamic load balancing for irregular workloads.
+
+Most existing work in parallel puzzle solving uses static work distribution, where the search space is divided equally among processors at the start of computation. This approach works well for problems with uniform computational difficulty but suffers from load imbalance when work units have varying complexity.
+
+Futoshiki presents particular challenges for parallel implementation due to its irregular constraint patterns. Unlike Sudoku, where constraint placement follows regular patterns, Futoshiki's arbitrary inequality placement creates variable search space sizes that are difficult to predict statically. This motivates the need for dynamic work generation strategies that can adapt to both puzzle characteristics and available computational resources.
 \subsection{Parallel Constraint Satisfaction}
 \label{subsec:parallel_csp}
 Parallel constraint satisfaction has been extensively studied, with approaches ranging from parallel constraint propagation to distributed search space exploration. Pacheco \cite{Pacheco2011} provides comprehensive coverage of parallel programming patterns, including the master-worker paradigm that handles dynamic load balancing for irregular workloads.
@@ -21,7 +28,19 @@ Futoshiki presents particular challenges for parallel implementation due to its 
 \subsection{Hybrid Parallel Programming}
 \label{subsec:hybrid_programming}
 The MPI standard \cite{MPIForum2021} and OpenMP specification \cite{OpenMP2020} provide complementary approaches to parallel computing. MPI excels at distributed-memory communication across nodes, while OpenMP efficiently manages shared-memory parallelism within nodes.
+\subsection{Hybrid Parallel Programming}
+\label{subsec:hybrid_programming}
+The MPI standard \cite{MPIForum2021} and OpenMP specification \cite{OpenMP2020} provide complementary approaches to parallel computing. MPI excels at distributed-memory communication across nodes, while OpenMP efficiently manages shared-memory parallelism within nodes.
 
+Rabenseifner et al. \cite{Rabenseifner2009} analyze hybrid MPI/OpenMP programming on multi-core clusters, examining the benefits and challenges of combining both paradigms. Their work demonstrates that careful consideration of task granularity and communication patterns is crucial when implementing hybrid approaches for irregular problems.
+
+Our work builds upon these foundations by developing dynamic work generation strategies that adapt to puzzle characteristics while efficiently utilizing both distributed and shared-memory parallelism across different computational scales.
+
+\subsection{Dynamic Load Balancing}
+\label{subsec:dynamic_load_balancing}
+Load balancing for irregular problems remains challenging due to the difficulty of predicting work unit complexity. Static approaches suffer from load imbalance, while purely dynamic approaches can incur significant communication overhead.
+
+Our approach addresses this by generating sufficient work units upfront based on analysis of puzzle structure, then using on-demand distribution to handle runtime variability. This strategy provides a middle ground between static and fully dynamic approaches, maintaining efficiency while adapting to irregular workload patterns characteristic of constraint satisfaction problems.
 Rabenseifner et al. \cite{Rabenseifner2009} analyze hybrid MPI/OpenMP programming on multi-core clusters, examining the benefits and challenges of combining both paradigms. Their work demonstrates that careful consideration of task granularity and communication patterns is crucial when implementing hybrid approaches for irregular problems.
 
 Our work builds upon these foundations by developing dynamic work generation strategies that adapt to puzzle characteristics while efficiently utilizing both distributed and shared-memory parallelism across different computational scales.
