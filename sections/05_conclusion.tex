@@ -1,23 +1,26 @@
 \section{Conclusion}
 \label{sec:conclusion}
-We presented a comprehensive high-performance computing framework for solving the Futoshiki puzzle, demonstrating that intelligent algorithms combined with modern parallel computing can effectively tackle NP-Complete problems. Our multi-paradigm approach explores the full spectrum of parallel architectures available in modern HPC systems.
+We presented a comprehensive high-performance computing implementation for solving the Futoshiki puzzle, demonstrating the feasibility of solving an instance of an NP-hard by employing several different techniques, starting from the search space reduction via precoloring, and later on moving towards MPI, OMP and Hybrid solutions.
+
+We have to note that when gathering data from the runs, we have noticed some discrepancies w.r.t. the execution times, and this is most likely dependent from the fact that older machine with the same node category (c-nodes) might have different hardware, or there is some wear and tear damage performed. Another factor is also due to the fact that the scheduler and the timing of when some jobs are scheduled might incur in some variance over the expected finishing time of our solutions.
 
 \subsection{Key Achievements}
 Our implementation achieves significant performance improvements at multiple levels:
 
 \begin{enumerate}
-    \item \textbf{Algorithmic Optimization:} The pre-coloring phase, based on list coloring theory, reduces the search space by 70-90\%, providing a 14× speedup over naive backtracking. This optimization is crucial for making larger puzzles tractable.
+    \item \textbf{Algorithmic Optimization:} The pre-coloring phase, based on list coloring theory, reduces the search space by 70-90\%, providing a 59× speedup over naive backtracking. This optimization is crucial for making puzzles which have a bigger search space tractable also with a sequential solution.
     
-    \item \textbf{Parallel Scalability:} We successfully parallelized the solver using three distinct paradigms:
+    \item \textbf{Parallel Scalability:} We successfully parallelized the solver using three distinct paradigms. Here are the execution time findings:
     \begin{itemize}
-        \item OpenMP achieves up to 15.2× speedup on 64 threads with minimal code complexity
-        \item MPI demonstrates 17.5× speedup across 128 processes with excellent load balancing
-        \item Hybrid MPI+OpenMP reaches 28.3× speedup, effectively utilizing both inter-node and intra-node parallelism
+        \item \textbf{OpenMP} achieves up to 53.4× speedup on 64 threads with minimal code complexity compared to the sequential solution.
+        \item \textbf{MPI} demonstrates 123× speedup when using 128 processes. From our Speedup analysis it also slightly beat the OMP solution and therefore was also the best for the efficiency parameter. This means that, while the OMP solution is the easier one to implement compared to the MPI version, it also suffers more from memory contention and mutex or lock-like structures needed to perform syanchronization.
+        \item \textbf{Hybrid MPI+OpenMP} reaches 60.4× speedup when using 32 CPUs and 8 threads, which showcases how leveraging MPI is actually the best solution compared to the other hybrid configurations. This was expected as the MPI only solution is already slightly better than OMP. An interesting finding is that while the Hybrid does not perform as good as the MPI only overall, there are still cases in which its configurability can lead to better results compared to our test under analysis.
     \end{itemize}
     
     \item \textbf{Dynamic Work Generation:} Our unified framework automatically adjusts work unit granularity based on available parallelism, ensuring efficient resource utilization across different scales and architectures.
+    \sd{this seems too vague but idk what to say}
     
-    \item \textbf{Configurable Performance:} The task generation factor allows fine-tuning for specific hardware configurations and puzzle characteristics, with optimal values typically between 4-8× oversubscription.
+    \item \textbf{Configurable Performance:} The task generation factor allows fine-tuning for specific hardware configurations and puzzle characteristics, with 64 factor leading up to \textbf{3.5x} speedup over the baseline (factor set to 1, which means we are not oversubscribing anything).
 \end{enumerate}
 
 \subsection{Technical Contributions}
@@ -29,14 +32,3 @@ Beyond solving Futoshiki puzzles, our work makes several contributions to parall
     \item \textbf{Hybrid Methodology:} Demonstrates effective combination of MPI and OpenMP for irregular workloads
     \item \textbf{Performance Portability:} Implementation runs efficiently from single-core laptops to large HPC clusters
 \end{itemize}
-
-\subsection{Broader Impact}
-The techniques developed here extend beyond puzzle-solving to real-world applications:
-\begin{itemize}
-    \item \textbf{Scheduling Problems:} Personnel assignment, resource allocation, and timetabling
-    \item \textbf{Verification:} Circuit design validation and software model checking
-    \item \textbf{Optimization:} Combinatorial optimization in logistics and operations research
-    \item \textbf{AI Planning:} Constraint-based planning and reasoning systems
-\end{itemize}
-
-Our framework provides a template for parallelizing similar backtracking algorithms, demonstrating that combining domain-specific optimizations with multi-level parallelism can make previously intractable problems solvable in reasonable time.

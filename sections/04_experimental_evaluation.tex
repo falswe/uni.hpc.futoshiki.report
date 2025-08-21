@@ -154,6 +154,7 @@ We can see that, while for MPI the speedup is close to the ideal one, for the OM
 We can also conclude something interesting:
 \begin{enumerate}
     \item As the number of computational units increase, we introduce higher overhead due to the message passing or the shared variables accesses, which is not much if we have "few" computational units, but as the number goes up the overhead is getting a little bit bigger, therefore impacting the overall speedup. For this reason we see that the theoretical line and the real one strand further and further as the number of the CU increase.
+    \item Another kind of overhead to consider is the one introduced by \textit{Resource Contention}, which is happening due to increasing the amount of threads and cpus utilizing the same memory, therefore reducing the effective memory bandwidth or saturating caches.
     \item The fact that the speedup does not grow as fast as the ideal one does not mean that the solution gets slower: It is still faster than the sequential solution.
 \end{enumerate}
 
