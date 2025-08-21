@@ -82,13 +82,14 @@ From \Cref{fig:factor_analysis_mpi} and \Cref{fig:factor_analysis_omp} we can se
 After running other experiments, we have seen that 64 was most of the times the elbow point at which we would see diminishing returns and for this reason we picked such value.
 
 As for the hybrid, we have faced the issue on "how can we evaluate MPI and OMP solutions"? In order to provide some interesting results, we have decided to abstract away from the actual implementation of the worker (MPI or OMP), and we have therefore decided to treat a processor in MPI as the same as the threads for OMP. This modeling simplification is going to help us in \Cref{subsubsec:hybrid_results} when evaluating how the hybrid solution works under several different configurations.
-\sd{check if this link works after doing hybrid results}
 
 After having taken this necessary detour, we can move towards finding the best factor for the hybrid one: we can see from \Cref{fig:factor_analysis_hybrid} that if we consider the symmetric factor 8, which means setting MPI Factor to 8 and Openmp Factor to 8, if we take this approximation into account (considering processors = threads), we can see how 8*8=64 is also a fairly good factor in this case.
 
 
 For this reason, we have decided to set for the following runs MPI and OMP factor to 64, and for the hybrid the MPI Factor to 8 and its symmetric counterpart to 8, so that we would have a factor of 64 "computational units" across the board.
 
+
+The concept of oversubscription, it being creating more tasks than workers is well-established in parallel computing, and as we have seen with a factor of 64 we can see up to \textbf{3.5x}.
 
 \subsection{Parallel Performance Analysis}
 \label{subsec:parallel_performance_analysis}
@@ -284,7 +285,7 @@ MPI shows a "quasi linear" scaling in speedup terms. We see how with 1 and 2 the
 
 \subsubsection{OpenMP Scalability}
 \label{subsubsec:omp_scalability}
-Table \ref{tab:openmp_scaling} shows OpenMP performance with increasing thread counts on a single node:
+Table \ref{tab:omp_scaling} shows OpenMP performance with increasing thread counts on a single node:
 
 \begin{table}[htbp]
 \caption{OpenMP Strong Scaling (9×9 Hard Puzzle)}
@@ -349,33 +350,3 @@ The hybrid solver demonstrates superior scalability by combining both paradigms:
 
 Here we presented the hybrid solution by increasing first the threads. We can see how the efficiency overall reduces due to the MPI and OMP overhead, which means that the synchronization overhead basically compounds as the number of computational units increase. Overall this table shows how we can still achieve high performances increase, but at the cost of a worse efficiency, which would suggests us that the best setting if we want to maximize this metric is the MPI solution.
 \sd{MPI best for efficiency purposes}
-
-\subsection{Task Generation Factor Analysis}
-We investigated the impact of the task generation factor—a multiplier that controls work unit granularity. Figure \ref{fig:task_factor} shows performance variation with different factors:
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.9\linewidth]{images/precoloring }
-\caption{Performance impact of task generation factor for 64 cores. Optimal performance occurs around factor = 4-8.}
-\label{fig:task_factor}
-\end{figure}
-
-Optimal performance occurs around factor = 4-8, balancing sufficient parallelism against overhead. Lower factors cause load imbalance, while higher factors increase coordination overhead.
-
-\subsection{Performance Summary}
-Figure \ref{fig:speedup_comparison} summarizes the speedup achieved by each implementation:
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.9\linewidth]{images/speedup_chart.png}
-\caption{Speedup comparison across all implementations. The hybrid approach consistently outperforms single-paradigm solutions.}
-\label{fig:speedup_comparison}
-\end{figure}
-
-Key observations:
-\begin{itemize}
-    \item \textbf{Sequential Optimization:} Pre-coloring provides 14× speedup, essential for all parallel versions
-    \item \textbf{Shared Memory:} OpenMP excels within a single node but plateaus at 32 threads
-    \item \textbf{Distributed Memory:} MPI scales better across nodes but has higher communication overhead
-    \item \textbf{Hybrid Approach:} Combines strengths of both paradigms, achieving best overall performance
-\end{itemize}

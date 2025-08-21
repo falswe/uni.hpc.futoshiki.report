@@ -50,10 +50,3 @@ Our work differs from existing puzzle solvers in several key aspects:
 \subsection{Load Balancing in Parallel Computing}
 \label{subsec:load_balancing_in_parallel_computing}
 Load balancing for irregular problems remains an active research area. Static approaches suffer from load imbalance when work units have varying difficulty, while dynamic approaches usually face communication overhead. Our solution strikes a balance by generating sufficient work units upfront (based on the calculated depth) while using on-demand distribution to handle variability.
-
-The concept of oversubscription, it being creating more tasks than workers is well-established in parallel computing. We are also going to present a study of the task generation factor's impact on performance, showing that 4-8× oversubscription optimally balances parallelism with overhead for constraint satisfaction problems.
-\sd{this goes into the evaluation part, we cannot present results here}
-
-
-\sd{also here, this is part of the findings and we cannot showcase here}
-The scalability results we achieve (up to 28× speedup on 64 cores) are competitive with other parallel constraint solvers, while our modular design facilitates adaptation to other problems. This positions our framework as a valuable contribution to both the HPC and AI communities.
