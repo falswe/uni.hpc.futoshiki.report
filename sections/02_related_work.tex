@@ -17,30 +17,11 @@ Parallel constraint satisfaction has been extensively studied, with approaches r
 Most existing work in parallel puzzle solving uses static work distribution, where the search space is divided equally among processors at the start of computation. This approach works well for problems with uniform computational difficulty but suffers from load imbalance when work units have varying complexity.
 
 Futoshiki presents particular challenges for parallel implementation due to its irregular constraint patterns. Unlike Sudoku, where constraint placement follows regular patterns, Futoshiki's arbitrary inequality placement creates variable search space sizes that are difficult to predict statically. This motivates the need for dynamic work generation strategies that can adapt to both puzzle characteristics and available computational resources.
-\subsection{Parallel Constraint Satisfaction}
-\label{subsec:parallel_csp}
-Parallel constraint satisfaction has been extensively studied, with approaches ranging from parallel constraint propagation to distributed search space exploration. Pacheco \cite{Pacheco2011} provides comprehensive coverage of parallel programming patterns, including the master-worker paradigm that handles dynamic load balancing for irregular workloads.
-
-Most existing work in parallel puzzle solving uses static work distribution, where the search space is divided equally among processors at the start of computation. This approach works well for problems with uniform computational difficulty but suffers from load imbalance when work units have varying complexity.
-
-Futoshiki presents particular challenges for parallel implementation due to its irregular constraint patterns. Unlike Sudoku, where constraint placement follows regular patterns, Futoshiki's arbitrary inequality placement creates variable search space sizes that are difficult to predict statically. This motivates the need for dynamic work generation strategies that can adapt to both puzzle characteristics and available computational resources.
 
 \subsection{Hybrid Parallel Programming}
 \label{subsec:hybrid_programming}
 The MPI standard \cite{MPIForum2021} and OpenMP specification \cite{OpenMP2020} provide complementary approaches to parallel computing. MPI excels at distributed-memory communication across nodes, while OpenMP efficiently manages shared-memory parallelism within nodes.
-\subsection{Hybrid Parallel Programming}
-\label{subsec:hybrid_programming}
-The MPI standard \cite{MPIForum2021} and OpenMP specification \cite{OpenMP2020} provide complementary approaches to parallel computing. MPI excels at distributed-memory communication across nodes, while OpenMP efficiently manages shared-memory parallelism within nodes.
 
-Rabenseifner et al. \cite{Rabenseifner2009} analyze hybrid MPI/OpenMP programming on multi-core clusters, examining the benefits and challenges of combining both paradigms. Their work demonstrates that careful consideration of task granularity and communication patterns is crucial when implementing hybrid approaches for irregular problems.
-
-Our work builds upon these foundations by developing dynamic work generation strategies that adapt to puzzle characteristics while efficiently utilizing both distributed and shared-memory parallelism across different computational scales.
-
-\subsection{Dynamic Load Balancing}
-\label{subsec:dynamic_load_balancing}
-Load balancing for irregular problems remains challenging due to the difficulty of predicting work unit complexity. Static approaches suffer from load imbalance, while purely dynamic approaches can incur significant communication overhead.
-
-Our approach addresses this by generating sufficient work units upfront based on analysis of puzzle structure, then using on-demand distribution to handle runtime variability. This strategy provides a middle ground between static and fully dynamic approaches, maintaining efficiency while adapting to irregular workload patterns characteristic of constraint satisfaction problems.
 Rabenseifner et al. \cite{Rabenseifner2009} analyze hybrid MPI/OpenMP programming on multi-core clusters, examining the benefits and challenges of combining both paradigms. Their work demonstrates that careful consideration of task granularity and communication patterns is crucial when implementing hybrid approaches for irregular problems.
 
 Our work builds upon these foundations by developing dynamic work generation strategies that adapt to puzzle characteristics while efficiently utilizing both distributed and shared-memory parallelism across different computational scales.
