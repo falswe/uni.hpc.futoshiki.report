@@ -121,21 +121,9 @@ For distributed-memory parallelization, we implemented a master-worker paradigm 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\linewidth]{imgs/mpi_msc.png}
-\caption{MPI Master-Worker communication sequence showing the request-assign-solve-report-terminate protocol}
+\caption{MPI Master-Worker communication sequence}
 \label{fig:mpi_sequence}
 \end{figure}
-
-The communication protocol uses five message tags to coordinate the distributed solving process:
-
-\begin{lstlisting}[language=C, caption=MPI communication protocol, label={listing:mpi_tags}]
-typedef enum {
-    TAG_WORK_REQUEST = 1,
-    TAG_SOLUTION_FOUND = 2,
-    TAG_SOLUTION_DATA = 3,
-    TAG_TERMINATE = 4,
-    TAG_WORK_ASSIGNMENT = 5
-} MessageTag;
-\end{lstlisting}
 
 \textbf{Implementation Note:} When only one MPI process is available, the implementation automatically falls back to the sequential algorithm as only a master and no worker would be available.
 
@@ -208,20 +196,20 @@ Data dependency analysis in parallel programming identifies relationships betwee
 The analysis focuses on the core parallel loop where tasks process work units concurrently. Table \ref{tab:omp_dependencies_detailed} presents the complete dependency analysis for the critical shared variables.
 
 \begin{table}[htbp]
-\caption{Detailed Data Dependencies in OpenMP Task Implementation}
+\caption{Data Dependencies in OpenMP Task Implementation}
 \begin{center}
-\small
-\begin{tabular}{@{}lcccccc@{}}
+\footnotesize
+\begin{tabular}{@{}lcccccl@{}}
 \toprule
-\textbf{Memory} & \multicolumn{2}{c}{\textbf{Earlier Statement}} & \multicolumn{2}{c}{\textbf{Later Statement}} & \textbf{Loop} & \textbf{Dependency} \\
-\textbf{Location} & \textbf{Line} & \textbf{Access} & \textbf{Line} & \textbf{Access} & \textbf{Carried?} & \textbf{Type} \\
+\textbf{Variable} & \multicolumn{2}{c}{\textbf{Earlier Statement}} & \multicolumn{2}{c}{\textbf{Later Statement}} & \textbf{Loop} & \textbf{Dep.} \\
+& \textbf{L\#} & \textbf{Op} & \textbf{L\#} & \textbf{Op} & \textbf{Carried} & \textbf{Type} \\
 \midrule
-found\_solution & 43 & read & 44 & write & No & anti \\
-found\_solution & 44 & write & 29 & read & Yes & flow \\
-found\_solution & 44 & write & 32 & read & Yes & flow \\
-found\_solution & 44 & write & 43 & read & Yes & flow \\
-found\_solution & 44 & write & 44 & write & Yes & output \\
-solution & 45 & write & 45 & write & Yes & output \\
+found\_solution & 20 & R & 21 & W & N & anti \\
+found\_solution & 21 & W & 6 & R & Y & flow \\
+found\_solution & 21 & W & 10 & R & Y & flow \\
+found\_solution & 21 & W & 20 & R & Y & flow \\
+found\_solution & 21 & W & 21 & W & Y & output \\
+solution & 22 & W & 22 & W & Y & output \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -231,11 +219,11 @@ solution & 45 & write & 45 & write & Yes & output \\
 \textbf{Dependency Analysis Results:}
 
 \begin{enumerate}
-    \item \textbf{Anti-dependency (Line 43→44, same task):} Within each task, the read of \texttt{found\_solution} at line 43 followed by potential write at line 44 creates an anti-dependency. This is benign since it occurs sequentially within the same thread.
+    \item \textbf{Anti-dependency (Line 20→21, same task):} Within each task, the read of \texttt{found\_solution} at line 20 followed by potential write at line 21 creates an anti-dependency. This is benign since it occurs sequentially within the same thread.
     
-    \item \textbf{Flow dependencies (Lines 44→29, 44→32, 44→43):} When one task writes \texttt{found\_solution = true}, other tasks must see this update to terminate early. Without proper synchronization, tasks might continue processing after a solution is found, causing inefficiency but not incorrectness.
+    \item \textbf{Flow dependencies (Lines 21→6, 21→10, 21→20):} When one task writes \texttt{found\_solution = true}, other tasks must see this update to terminate early. Without proper synchronization, tasks might continue processing after a solution is found, causing inefficiency but not incorrectness.
     
-    \item \textbf{Output dependencies (Lines 44→44, 45→45):} Multiple tasks finding solutions simultaneously could write to the same memory locations concurrently, causing undefined behavior. This is not possible by the definition of a Futoshiki puzzle.
+    \item \textbf{Output dependencies (Lines 21→21, 22→22):} Multiple tasks finding solutions simultaneously could write to the same memory locations concurrently, causing undefined behavior. This is not possible by the definition of a Futoshiki puzzle.
 \end{enumerate}
 
 \textbf{Mitigation Strategies Applied:}
@@ -254,7 +242,7 @@ The critical section implements a double-check pattern: tasks first check \textt
 \subsubsection{Hybrid Implementation: Combining MPI and OpenMP}
 \label{subsubsec:hybrid_implementation}
 
-The hybrid approach represents the culmination of combining multiple parallel programming paradigms for a single problem. Using hierarchical parallelization principles, we combine MPI's distributed-memory capabilities with OpenMP's shared-memory efficiency in a two-layer architecture.
+The hybrid approach represents the combination of multiple parallel programming paradigms for a single problem. Using hierarchical parallelization principles, we combine MPI's distributed-memory capabilities with OpenMP's shared-memory efficiency in a two-layer architecture.
 
 \textbf{Two-Layer Design Philosophy:}
 Our hybrid implementation follows a systematic layering approach to maximize the benefits of both paradigms:
