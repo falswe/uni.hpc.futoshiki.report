@@ -1,9 +1,9 @@
 \section{Methodology and Implementation}
 \label{sec:solution}
 
-We implement the sequential algorithm described by Şen and Diner \cite{Sen2024Futoshiki} and apply the parallel programming methodologies. Our approach follows a systematic progression: first implementing their list coloring-based sequential solver, then developing MPI, OpenMP, and hybrid parallelizations using the techniques studied.
+We implement the sequential algorithm described by Şen and Diner \cite{Sen2024Futoshiki} and develop three distinct parallel approaches. Our methodology follows a systematic progression: first implementing their list coloring-based sequential solver, then developing MPI, OpenMP, and hybrid parallelizations that leverage distributed-memory, shared-memory, and combined paradigms respectively.
 
-The implementation translates their theoretical constraint propagation approach into working code, then explores how different parallelization paradigms can be applied to the resulting backtracking search problem.
+The implementation translates their theoretical constraint propagation approach into working code, then systematically explores three parallelization paradigms: distributed-memory (MPI), shared-memory (OpenMP), and hybrid approaches applied to the resulting backtracking search problem.
 
 \subsection{Sequential Algorithm Implementation}
 \label{subsec:paper_implementation}
@@ -106,7 +106,7 @@ The algorithm explores progressively deeper levels of the search tree until gene
 
 \subsubsection{MPI Implementation: Master-Worker Pattern}
 \label{subsubsec:mpi_implementation}
-Following the distributed-memory programming techniques, we implemented a master-worker paradigm suitable for cluster environments. The design applies the message-passing concepts studied:
+For distributed-memory parallelization, we implemented a master-worker paradigm suitable for cluster environments. The design applies core message-passing principles:
 \begin{enumerate}
 \textbf{Master Process (Rank 0):}
 \begin{itemize}
@@ -150,7 +150,7 @@ This design enables dynamic load balancing as workers request work only when rea
 
 \subsubsection{OpenMP Implementation: Task-Based Parallelism}
 \label{subsubsec:omp_implementation}
-Following the shared-memory programming techniques, we implemented task-based parallelism using OpenMP. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads.
+For shared-memory parallelization, we implemented task-based parallelism using OpenMP. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads.
 
 From a high-level perspective, once the precoloring phase is performed, the master thread gives each worker a puzzle with a partial solution. When any worker finds the complete solution, it sets the \texttt{found\_solution} flag to true, effectively stopping other threads from continuing unnecessary work.
 
@@ -260,7 +260,7 @@ The critical section implements a double-check pattern: tasks first check \textt
 \subsubsection{Hybrid Implementation: Combining MPI and OpenMP}
 \label{subsubsec:hybrid_implementation}
 
-The hybrid approach represents the culmination of applying multiple methodologies to a single problem. Following the principles of hierarchical parallelization, we combine MPI's distributed-memory capabilities with OpenMP's shared-memory efficiency in a two-layer architecture.
+The hybrid approach represents the culmination of combining multiple parallel programming paradigms for a single problem. Using hierarchical parallelization principles, we combine MPI's distributed-memory capabilities with OpenMP's shared-memory efficiency in a two-layer architecture.
 
 \textbf{Two-Layer Design Philosophy:}
 Our hybrid implementation follows a systematic layering approach to maximize the benefits of both paradigms:
@@ -273,7 +273,7 @@ Our hybrid implementation follows a systematic layering approach to maximize the
 This design abstracts the two approaches while maintaining common APIs across implementations, enabling direct performance comparisons and modular development.
 
 \textbf{Implementation Strategy:}
-The hybrid approach reuses the established MPI communication protocol while substituting the sequential solving step with our OpenMP solver. This demonstrates how the methodologies can be composed hierarchically:
+The hybrid approach reuses the established MPI communication protocol while substituting the sequential solving step with our OpenMP solver. This demonstrates how MPI and OpenMP paradigms can be composed hierarchically:
 
 \begin{lstlisting}[language=C, caption=Hybrid worker combining MPI and OpenMP, label={listing:hybrid_worker}]
 static void hybrid_worker(Futoshiki* puzzle) {
@@ -336,4 +336,4 @@ The hybrid model supports various process-thread combinations, enabling explorat
 
 This configurability allows performance tuning based on problem characteristics and hardware topology, demonstrating practical application of parallel programming trade-offs.
 
-The hybrid implementation showcases how multiple parallelization paradigms can be systematically combined, providing a comprehensive application of methodologies to constraint satisfaction problems.
+The hybrid implementation showcases how multiple parallelization paradigms can be systematically combined, providing a comprehensive parallel programming approach to constraint satisfaction problems.
