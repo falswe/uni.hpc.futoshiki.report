@@ -1,13 +1,17 @@
-\section{Solution Proposed}
+\section{Methodology and Implementation}
 \label{sec:solution}
 
-We now present our findings and solutions in solving Futoshiki puzzle. We start in \Cref{subsec:paper_implementation} by first understanding how the sequential algorithm proposed by Şen and Diner in \cite{Sen2024Futoshiki} work. In this section we dive into how the precoloring works in \Cref{subsubsec:precoloring} and we wrap up by understanding how the backtrack with CSP helps us solve the problem in \Cref{subsubsec:backtrack_with_csp}
+We implement the sequential algorithm described by Şen and Diner \cite{Sen2024Futoshiki} and apply the parallel programming methodologies covered in this course. Our approach follows a systematic progression: first implementing their list coloring-based sequential solver, then developing MPI, OpenMP, and hybrid parallelizations using the techniques studied.
 
-After having obtained what is going to become our baseline in the validation, we move towards the parallel implementations in \Cref{subsec:parallel_implementation}: we start off by understanding how the dynamic load balancing works in \Cref{subsubsec:dynamic_load_balancing}, as it is a sophisticated algorithm at the base of every parallel implementation. We then move towards the MPI implementation in \cref{subsubsec:mpi_implementation}, then to the OpenMP implementation in \cref{subsubsec:omp_implementation} and finally to the hybrid implementation in \cref{subsubsec:hybrid_implementation}.
+The implementation translates their theoretical constraint propagation approach into working code, then explores how different parallelization paradigms can be applied to the resulting backtracking search problem.
 
-\subsection{Implementing The Sequential Algorithm}
+\subsection{Sequential Algorithm Implementation}
 \label{subsec:paper_implementation}
-Our implementation builds upon the list coloring transformation detailed by Şen and Diner in \cite{Sen2024Futoshiki}. This approach significantly outperforms naive backtracking by reducing the search space through constraint propagation before the recursive search begins. 
+We begin by implementing the sequential algorithm described in the chosen paper. Their approach transforms Futoshiki into a list coloring problem, enabling constraint propagation to reduce the search space before applying backtracking.
+
+\subsection{Sequential Algorithm Implementation}
+\label{subsec:paper_implementation}
+We implement the list coloring transformation detailed by Şen and Diner \cite{Sen2024Futoshiki}. Translating their theoretical approach into working code required several key implementation decisions that significantly impact the subsequent parallelization strategies.
 
 \subsubsection{Pre-coloring: Search Space Reduction}
 \label{subsubsec:precoloring}
@@ -20,16 +24,16 @@ The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "
     
     \item \textbf{Uniqueness Propagation:} When a cell's pc\_list reduces to a single value, \texttt{process\_uniqueness} removes that value from all other cells in the same row and column. To continue with our example, as B can have value 1 and 2, and as A can have $n < 2$, it would mean that A is going to hold 1 as it is the only integer strictly lower than 2, and B therefore would hold 2, as its pc\_list had two values and we need to respect the \textit{Latin Square} property.
     
-    \item \textbf{Iteration:} Steps 2-3 repeat until no further reductions occur, ensuring maximal constraint propagation.
+    \item \textbf{Iteration:} The previous two steps repeat until no further reductions occur, ensuring maximal constraint propagation.
 \end{enumerate}
 
-This process often eliminates 70-90\% of possible values, dramatically reducing the search space complexity from $O(N^{N^2})$ to a much smaller effective branching factor.
+This implementation typically achieves the 70-90\% search space reduction reported in the paper, creating the foundation for effective parallelization.
 
-\subsubsection{Backtracking with Constrained Search}
+\subsubsection{Backtracking Implementation}
 \label{subsubsec:backtrack_with_csp}
-After pre-coloring, the recursive backtracking function \texttt{seq\_color\_g} explores only values in each cell's reduced pc\_list:
+The core solving algorithm translates the paper's constrained search into the recursive function \texttt{seq\_color\_g}:
 
-\begin{lstlisting}[language=C, caption=Sequential backtracking core, label={listing:precoloring}]
+\begin{lstlisting}[language=C, caption=Sequential backtracking implementation, label={listing:seq_implementation}]
 bool seq_color_g(Futoshiki* puzzle, 
                  int solution[MAX_N][MAX_N], 
                  int row, int col) {
@@ -52,7 +56,7 @@ bool seq_color_g(Futoshiki* puzzle,
                  solution, color)) {
             solution[row][col] = color;
             if (seq_color_g(puzzle, solution, 
-                           row, col + 1))
+                            row, col + 1))
                 return true;
             solution[row][col] = EMPTY;
         }
@@ -61,23 +65,21 @@ bool seq_color_g(Futoshiki* puzzle,
 }
 \end{lstlisting}
 
-\Cref{listing:precoloring} shows how the search space reduction is employed in the pre-coloring phase. The \texttt{safe} function validates that a color assignment doesn't violate Latin Square constraints or inequality relationships with already-placed neighbors. This combination of pre-coloring and constrained backtracking forms our efficient sequential baseline with which we evaluated the parallel solution w.r.t.
+The implementation explores only values in each cell's reduced \texttt{pc\_list}, with the \texttt{safe} function validating constraint compliance. This creates the sequential baseline that serves as both the performance benchmark and the building block for parallel implementations.
 
-It is also important to present this approach here, as it is effectively the starting point of our solution and also parallel implementation rely on the same concepts or algorithms.
+\textbf{Correctness Foundation for Parallelization:} A critical property of Futoshiki puzzles is that each valid instance has exactly one unique solution. This characteristic enables safe parallel implementation with early termination—when any worker discovers the solution, all other workers can immediately halt without risking loss of correctness.
 
-It is worth mentioning that, as Futoshiki puzzle has 1 unique solution per instance, it is not possible that two threads ever have two possible ordering of numbers such that they both lead to a solution. This means that the algorithm effectively ends once the one and only solution is found. This is needed in order to state the correctness of our approach, and the correctness of our algorithm is also based on this statement.
-
-\subsection{Parallel Design and Implementation}
+\subsection{Parallelization Strategy}
 \label{subsec:parallel_implementation}
-We now move towards the presentation of our parallel solutions. We start off with an explanation on why our solution differs and improves upon the state of the art by employing a dynamic load balancing algorithm, as this one is used across several parallel implementations. We then move towards MPI, OpenMP and hybrid approach. 
+The sequential implementation reveals parallelization opportunities in the backtracking phase. Since constraint propagation completes quickly in polynomial time, we focus on parallelizing the exponential backtracking search, following Amdahl's Law \cite{ahmdals_law} principles by targeting the computationally dominant phase.
 
-The aforementioned algorithm to perform the pruning of the backtrack search space via list coloring runs in polynomial time. From a practical point of view, this means that, by spending "a little bit amount of time" in the precoloring phase, the speedup that we obtain is quite high. Now, as we know from Ahmdal's Law \cite{ahmdals_law}, given a specific "Enhancement" over the existing algorithm, we can represent the speedup over a machine which is running a process as the ratio among the execution time without said Enhancement over the execution time with it being applied. This means that, as the pre-coloring phase is quite fast already and that already is a good "Enhancement", and as the actual solving of the problem is non polynomial, it makes quite a lot of sense to shift our focus towards trying to obtain some Enhancement also for the non polynomial part of the algorithm, given the fact that making the precoloring algorithm does not take too much time. Furthermore, by the law of diminishing returns, it would not make too much sense to apply other enhancement and speedup on the precoloring, as that would not lead to another high increment over the execution time of the total solution.
+All three parallel implementations share a common challenge: how to distribute the irregular search tree effectively across available workers. We address this through a dynamic work generation framework that creates appropriate work units based on available parallelism.
 
-\subsubsection{Multi-Level Work Generation Framework}
+\subsubsection{Dynamic Work Generation Framework}
 \label{subsubsec:dynamic_load_balancing}
-All three parallel implementations share a sophisticated work generation strategy implemented in \texttt{parallel.c}. This framework dynamically determines the optimal depth for creating work units based on the target number of parallel workers.
+A key implementation challenge was developing a work distribution strategy suitable for all three parallelization paradigms. Rather than static partitioning, we implemented an adaptive approach in \texttt{parallel.c} that analyzes the search tree to generate appropriate work units.
 
-\begin{lstlisting}[language=C, caption=Dynamic depth calculation,label={listing:calculate_distribution_depth}]
+\begin{lstlisting}[language=C, caption=Dynamic depth calculation for work generation, label={listing:work_generation}]
 int calculate_distribution_depth(
     Futoshiki* puzzle, int num_workers) {
     int empty_cells[MAX_N * MAX_N][2];
@@ -100,56 +102,38 @@ int calculate_distribution_depth(
 }
 \end{lstlisting}
 
-As we can see in \Cref{listing:calculate_distribution_depth}, the algorithm explores the search tree to progressively deeper levels until generating sufficient work units. Each work unit represents a partial solution, which means that it also represent a specific path through the initial portion of the search tree. This approach ensures:
+The algorithm explores progressively deeper levels of the search tree until generating sufficient work units. Each work unit represents a partial solution path, ensuring that workers receive meaningful chunks of computation while maintaining load balance. This approach addresses the irregular nature of Futoshiki's constraint patterns that make static distribution ineffective.
+
+\subsubsection{MPI Implementation: Master-Worker Pattern}
+\label{subsubsec:mpi_implementation}
+Following the distributed-memory programming techniques from the course, we implemented a master-worker paradigm suitable for cluster environments. The design applies the message-passing concepts studied:
+\begin{enumerate}
+\textbf{Master Process (Rank 0):}
 \begin{itemize}
-    \item \textbf{Load Balance:} Sufficient work units to minimize the idle time in each worker.
-    \item \textbf{Granularity Control:} Work units neither too large (causing imbalance) nor too small (increasing overhead).
-    \item \textbf{Adaptability:} Automatic adjustment based on puzzle difficulty and worker count.
+    \item Performs precoloring and fills out a basic version of the puzzle
+    \item Based on the configuration factor given, decides the ratio of jobs to CPUs by evaluating the depth of the backtracking approach and opens the port to listen to the workers
+    \item Sends 1 job to each worker via the \texttt{TAG\_WORK\_ASSIGNMENT}
+    \item If a worker does not solve the job, it receives the message and sends a new job via the same tag. If the solution is found, it broadcasts to every other worker to stop via \texttt{TAG\_TERMINATE}. This leverages the unique solution property of Futoshiki puzzles for correctness
+    \item Collects the solution found and sends it to the user
 \end{itemize}
 
-\subsubsection{MPI Implementation: Master-Worker Paradigm}
-\label{subsubsec:mpi_implementation}
-Here are the most interesting aspects about our MPI solution. From an high level point of view, given P as the number of Processes which are defined, the MPI solver implements a distributed master-worker model suitable for cluster environments:
+\textbf{Worker Processes (Ranks 1 to P-1):}
+\begin{itemize}
+    \item Poll master by asking for a job to solve via \texttt{TAG\_WORK\_REQUEST}
+    \item Try to solve the precolored puzzle given. If successful, send \texttt{TAG\_SOLUTION\_FOUND} followed by \texttt{TAG\_SOLUTION\_DATA}, otherwise send another \texttt{TAG\_WORK\_REQUEST}
+    \item Upon receiving \texttt{TAG\_TERMINATE} from the master, gracefully shut down as this indicates a solution was found
+\end{itemize}
 
-\begin{enumerate}
-    \item \textbf{Master Process (Rank 0):}
-    \begin{itemize}
-        \item Performs precoloring and fills out a basic version of the puzzle.
-        \item Based on the \textit{configuration factor} given, decides the ratio of jobs to CPUs(puzzles to be solved) by evaluating the depth of the backtracking approach and opens the port to listen to the slaves.
-        \item Sends 1 job to each worker via the \textit{TAG\_WORK\_ASSIGNMENT}.
-        \item If a worker does not solve the job, he receives the message and sends a new job via the same tag as the previous point. If the solution is found, it broadcasts to every other worker to stop as the solution is found via a broadcast of the \textit{TAG\_TERMINATE}. Again, remember that due to the problem statement, we know that given 1 Futoshiki puzzle there exists 1 and only 1 solution. This serves as a validation to the correctness of our approach.
-        \item Collects the solution found and sends it to the user.
-    \end{itemize}
-    
-    \item \textbf{Worker Processes (Ranks 1 to P-1):}
-    \begin{itemize}
-        \item Polls master by asking for a job to solve via the \textit{TAG\_WORK\_REQUEST}.
-        \item Tries to solve the pre colored puzzle given. If it manages, it sends a \textit{TAG\_SOLUTION\_FOUND} followed by the \textit{TAG\_SOLUTION\_DATA}, else it sends again a \textit{TAG\_WORK\_REQUEST}.
-        \item Upon receiving from the master the \textit{TAG\_TERMINATE}, as this means that a solution was found, it gracefully shuts down.
-    \end{itemize}
-\end{enumerate}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{imgs/mpi_msc.png}
+\caption{MPI Master-Worker communication sequence showing the request-assign-solve-report-terminate protocol}
+\label{fig:mpi_sequence}
+\end{figure}
 
-\sd{here is a sequence diagram to better explain our approach to the reader.}
-% Worker[i]                       Master (Rank 0)
-%    |                                 |
-%    |------ TAG\_WORK\_REQUEST --------->|  Worker asks for a job
-%    |                                 |
-%    |<----- TAG\_WORK\_ASSIGNMENT ------|  Master sends work unit
-%    |                                 |
-%    |--compute work (precolor + backtracking)-->|
-%    |                                 |
-%    |--- TAG\_SOLUTION\_FOUND ---------->|  Worker found solution (if success)
-%    |--- TAG\_SOLUTION\_DATA ----------->|  Worker sends actual solution
-%    |                                 |
-%    |<----- TAG\_TERMINATE ------------|  Master tells worker to stop
-%    |                                 |
-%    |----- Worker exits --------------|
+The communication protocol uses five message tags to coordinate the distributed solving process:
 
-A careful reader might have already recognized that there is a corner case for which this approach is not feasible. It is the case if we only have 1 CPU, as being this a master-worker approach, we cannot have a master to tell no one what to do, or a worker which does not know what to do. Therefore, to avoid our single thread to be "overly specialized" -- as of either manages or works, in the case in which we have only 1 CPU available we fallback to the sequential implementation.
-
-For clarity, we are also presenting in \Cref{listing:message_tags} the tags which our communication protocol leverages in order to achieve the aforementioned flow.
-
-\begin{lstlisting}[language=C, caption=MPI communication tags, label={listing:message_tags}]
+\begin{lstlisting}[language=C, caption=MPI communication protocol, label={listing:mpi_tags}]
 typedef enum {
     TAG_WORK_REQUEST = 1,
     TAG_SOLUTION_FOUND = 2,
@@ -158,18 +142,19 @@ typedef enum {
     TAG_WORK_ASSIGNMENT = 5
 } MessageTag;
 \end{lstlisting}
-This design enables dynamic load balancing—workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty.
+
+\textbf{Implementation Note:} When only one MPI process is available, the implementation automatically falls back to the sequential algorithm as only a master and no worker would be available.
+
+This design enables dynamic load balancing as workers request work only when ready, automatically handling heterogeneous performance and variable work unit difficulty typical in constraint satisfaction problems.
 
 
 \subsubsection{OpenMP Implementation: Task-Based Parallelism}
 \label{subsubsec:omp_implementation}
-We can now move towards our OpenMP solver leverages task-based parallelism for shared-memory systems. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads. In \Cref{listing:omp_algorithm} we present the most important snippet of code, which is the one used by the threads/workers to find the solution.
+Following the shared-memory programming techniques from the course, we implemented task-based parallelism using OpenMP. After generating work units, the master thread spawns OpenMP tasks that are dynamically scheduled across available threads.
 
-From an high level point of view, once the precoloring phase is performed and constant propagation, it means that the master thread can give each worker the puzzle with a partial solution, and once one finds one, sets the flag \textit{found\_solution} to true, effectively stopping every other thread as a solution is found. 
+From a high-level perspective, once the precoloring phase is performed, the master thread gives each worker a puzzle with a partial solution. When any worker finds the complete solution, it sets the \texttt{found\_solution} flag to true, effectively stopping other threads from continuing unnecessary work.
 
-\wen{omp gives inconsistent results when running on one thread only - can be double the time like for 11x11h5 or a fraction like for 9x9h1. let me investigate this.}
-
-\begin{lstlisting}[language=C, caption=OpenMP task generation, label={listing:omp_algorithm}]
+\begin{lstlisting}[language=C, caption=OpenMP task-based implementation, label={listing:omp_implementation}]
 #pragma omp parallel
 {
     #pragma omp single
@@ -205,44 +190,99 @@ From an high level point of view, once the precoloring phase is performed and co
 }
 \end{lstlisting}
 
-Key features include:
+\textbf{Key Implementation Features:}
 \begin{itemize}
-    \item \textbf{Dynamic Scheduling:} OpenMP runtime automatically balances tasks across threads.
-    \item \textbf{Early Termination:} Due to the fact that we have the shared variable \textit{solution\_found}, this means that it is not required that every single thread explores all possible solutions. This leads to several fold improvements as probabilistically speaking it is quite unlikely for the solution to be found at the N-th puzzle solved.
-    \item \textbf{Configurable Factor:} We have a dynamic task generation \textit{factor} which allows to assess the ratio between available threads and jobs to be created, so that one could determine the amount of "stress" to put to the system.
+    \item \textbf{Dynamic Scheduling:} OpenMP runtime automatically balances tasks across threads, adapting to varying work unit difficulty without explicit load balancing code.
+    \item \textbf{Early Termination:} The shared \texttt{found\_solution} variable enables early termination across all threads. This provides substantial speedup since probabilistically, the solution is unlikely to be found in the very last work unit processed.
+    \item \textbf{Configurable Task Factor:} The dynamic task generation factor allows tuning the ratio between available threads and generated jobs, enabling control over the computational "stress" applied to the system.
 \end{itemize}
 
-
-Here the careful reader might be surprised to find that also here we are leveraging the sequential solution if we only have 1 thread running. Given the proposed architecture, it is capable of running with 1 thread only, then why is this done? The reason is twofold:
+\textbf{Single-Thread Fallback Design Decision:}
+An implementation detail worth noting is our fallback to the sequential algorithm when only one thread is available. While OpenMP can run with a single thread, we chose this approach for two reasons:
 \begin{itemize}
-    \item In order to make our future comparison with MPI as interesting as possible, we have decided to keep the two designs as close as possible from an interface point of view.
-    \item Not having overhead given by code expansion and extra metadata being inserted during compile time, as we would not use that extra capabilities with just 1 process running, we decided to rely on the more efficient sequential for this corner case.
+    \item \textbf{Overhead Avoidance:} Single-threaded OpenMP incurs code expansion and metadata overhead during compilation that provides no benefit when parallelism isn't utilized.
+    \item \textbf{Interface Consistency:} To enable meaningful performance comparisons with MPI, we maintain similar design patterns across implementations.
 \end{itemize}
 
-Of course, this solution does not rely on message passing and therefore it does not require to define any additional structure, but rather by relying on the macros defined we are able to decide which variables are going to be shared or not, therefore \textit{early termination} still occurs also in this solution but leveraging the shared variable instead of the messages. 
+\textbf{Shared Memory vs. Message Passing:}
+Unlike the MPI implementation, this approach leverages shared memory rather than message passing. Variables are explicitly declared as shared or private using OpenMP clauses, and early termination occurs through the shared variable mechanism rather than broadcast messages.
 
-Here is our dataflow analysis for our proposed solution:
-\sd{put dataflow analysis here}
+\textbf{Data Dependency Analysis}
+
+Data dependency analysis in parallel programming identifies relationships between different parts of code that affect execution order. This analysis ensures parallel tasks operate without conflicts, preventing race conditions and maintaining correctness while enabling efficient parallelization.
+
+The analysis focuses on the core parallel loop where tasks process work units concurrently. Table \ref{tab:omp_dependencies_detailed} presents the complete dependency analysis for the critical shared variables.
+
+\begin{table}[htbp]
+\caption{Detailed Data Dependencies in OpenMP Task Implementation}
+\begin{center}
+\small
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Memory} & \multicolumn{2}{c}{\textbf{Earlier Statement}} & \multicolumn{2}{c}{\textbf{Later Statement}} & \textbf{Loop} & \textbf{Dependency} \\
+\textbf{Location} & \textbf{Line} & \textbf{Access} & \textbf{Line} & \textbf{Access} & \textbf{Carried?} & \textbf{Type} \\
+\midrule
+found\_solution & 43 & read & 44 & write & ✗ & anti \\
+found\_solution & 44 & write & 29 & read & ✓ & flow \\
+found\_solution & 44 & write & 32 & read & ✓ & flow \\
+found\_solution & 44 & write & 43 & read & ✓ & flow \\
+found\_solution & 44 & write & 44 & write & ✓ & output \\
+solution & 45 & write & 45 & write & ✓ & output \\
+\bottomrule
+\end{tabular}
+\end{center}
+\label{tab:omp_dependencies_detailed}
+\end{table}
+
+\textbf{Dependency Analysis Results:}
+
+\begin{enumerate}
+    \item \textbf{Anti-dependency (Line 43→44, same task):} Within each task, the read of \texttt{found\_solution} at line 43 followed by potential write at line 44 creates an anti-dependency. This is benign since it occurs sequentially within the same thread.
+    
+    \item \textbf{Flow dependencies (Lines 44→29, 44→32, 44→43):} When one task writes \texttt{found\_solution = true}, other tasks must see this update to terminate early. Without proper synchronization, tasks might continue processing after a solution is found, causing inefficiency but not incorrectness.
+    
+    \item \textbf{Output dependencies (Lines 44→44, 45→45):} Multiple tasks finding solutions simultaneously could write to the same memory locations concurrently, causing undefined behavior. This is not possible by the definition of a Futoshiki puzzle.
+\end{enumerate}
+
+\textbf{Mitigation Strategies Applied:}
+
+The implementation employs several OpenMP synchronization mechanisms to address these dependencies:
+
+\begin{itemize}
+    \item \texttt{firstprivate(i)}: Ensures each task has its own copy of the loop variable, preventing interference between tasks
+    \item \texttt{shared(found\_solution)}: Explicitly declares shared access to the termination flag for memory coherence
+    \item \texttt{\#pragma omp critical}: Provides mutual exclusion for the check-then-act pattern, ensuring only one task can update shared state atomically
+    \item \texttt{\#pragma omp taskwait}: Prevents premature resource deallocation while tasks are still executing
+\end{itemize}
+
+The critical section implements a double-check pattern: tasks first check \texttt{found\_solution} outside the critical section for efficiency, then check again inside for correctness. This minimizes time spent in the critical section while ensuring race-free updates to both the solution flag and the solution array.
 
 \subsubsection{Hybrid Implementation: Combining MPI and OpenMP}
 \label{subsubsec:hybrid_implementation}
 
-We are now going to present out hybrid solution, which aims at exploiting both the distributed message passing provided by MPI and combining it with the shared memory parallelism offered by OMP. In order to make the comparison among versions as similar as possible, we have thought of a two layer approach:
+The hybrid approach represents the culmination of applying multiple methodologies to a single problem. Following the principles of hierarchical parallelization, we combine MPI's distributed-memory capabilities with OpenMP's shared-memory efficiency in a two-layer architecture.
+
+\textbf{Two-Layer Design Philosophy:}
+Our hybrid implementation follows a systematic layering approach to maximize the benefits of both paradigms:
+
 \begin{itemize}
-    \item \textbf{Outer Layer:} This is the Inter-node part of our solution and relies on MPI, which distributes coarse-grained work units across nodes. The idea is that by abstracting away the two approaches while keeping the API commons w.r.t to the MPI and OMP solution, this part effectively behaves just like the MPI counter variant.
-    \item \textbf{Inner Layer:} This is the Intra-node part of our solution and of course relies on OpenMP, which further parallelizes each work unit within a node. The idea is that the MPI serves as a wrapper over the message passing, coordination and generation of tasks, whereas the inner OMP serves to optimize the solving time of each node.
+    \item \textbf{Outer Layer (Inter-node):} MPI distributes coarse-grained work units across cluster nodes, handling the master-worker coordination and work distribution logic identical to the pure MPI implementation.
+    \item \textbf{Inner Layer (Intra-node):} OpenMP parallelizes the solving of each work unit within individual nodes, applying the task-based approach from our OpenMP implementation.
 \end{itemize}
 
+This design abstracts the two approaches while maintaining common APIs across implementations, enabling direct performance comparisons and modular development.
 
-By combining this approach by having common APIs, we are able to let MPI behave as if the nodes are normal ones, and we make possible for OMP to work in parallel. Of coruse, as MPI is used to orchestrate the whole job decision and message passing, once a solution is found by a worker, we have to rely on the message passing strategy provided by MPI, and again this is done so that the comparison in performance w.r.t. the other two solution would be as seamless as possible.
+\textbf{Implementation Strategy:}
+The hybrid approach reuses the established MPI communication protocol while substituting the sequential solving step with our OpenMP solver. This demonstrates how the methodologies can be composed hierarchically:
 
-\begin{lstlisting}[language=C, caption=Hybrid worker with nested parallelism, label={listing:hybrid_worker}]
+\begin{lstlisting}[language=C, caption=Hybrid worker combining MPI and OpenMP, label={listing:hybrid_worker}]
 static void hybrid_worker(Futoshiki* puzzle) {
     WorkUnit work_unit;
     MPI_Status status;
     
     while (true) {
-        // Request work from master via MPI
+        // MPI layer: request work from master
+        int request = 1;
         MPI_Send(&request, 1, MPI_INT, 0, 
                  TAG_WORK_REQUEST, MPI_COMM_WORLD);
         MPI_Recv(&work_unit, sizeof(WorkUnit), 
@@ -251,14 +291,17 @@ static void hybrid_worker(Futoshiki* puzzle) {
         
         if (status.MPI_TAG == TAG_TERMINATE) break;
         
-        // Apply work unit and solve with OpenMP
+        // Apply work unit to create sub-puzzle
         Futoshiki sub_puzzle;
         memcpy(&sub_puzzle, puzzle, sizeof(Futoshiki));
         apply_work_unit(&sub_puzzle, &work_unit, 
                        sub_puzzle.board);
         
+        // OpenMP layer: solve using task-based parallelism
+        int local_solution[MAX_N][MAX_N];
         if (omp_solve(&sub_puzzle, local_solution)) {
-            // Report solution via MPI
+            // MPI layer: report solution back to master
+            int found_flag = 1;
             MPI_Send(&found_flag, 1, MPI_INT, 0, 
                     TAG_SOLUTION_FOUND, MPI_COMM_WORLD);
             MPI_Send(local_solution, MAX_N * MAX_N, 
@@ -270,4 +313,27 @@ static void hybrid_worker(Futoshiki* puzzle) {
 }
 \end{lstlisting}
 
-In \Cref{listing:hybrid_worker} we present the core of the solution, which is the code of the hybrid worker. Due to the design choices made, we can see how we are effectively relying on the APIs provided from MPI and OMP, therefore reusing already existing code without having to write already defined solving logic.
+\textbf{Design Benefits and Trade-offs:}
+The hybrid approach demonstrates several key principles from parallel computing:
+
+\begin{enumerate}
+    \item \textbf{Hierarchical Decomposition:} Work is decomposed at two levels—coarse-grained distribution via MPI and fine-grained task parallelism via OpenMP, matching the hardware hierarchy of clusters with multi-core nodes.
+    
+    \item \textbf{Communication Minimization:} By using OpenMP within nodes, we reduce the number of MPI processes needed, decreasing inter-node communication overhead which is typically orders of magnitude more expensive than intra-node synchronization.
+    
+    \item \textbf{Resource Utilization:} The approach can better exploit modern cluster architectures where each node contains multiple cores, using MPI for scalability across nodes and OpenMP for efficiency within nodes.
+    
+    \item \textbf{Implementation Modularity:} By maintaining common interfaces, the hybrid approach leverages existing MPI and OpenMP implementations without requiring complete redesign.
+\end{enumerate}
+
+\textbf{Configuration Flexibility:}
+The hybrid model supports various process-thread combinations, enabling exploration of different resource allocation strategies. For a fixed number of computational units, one can configure:
+\begin{itemize}
+    \item \textbf{MPI-heavy:} More processes, fewer threads per process (e.g., 8 processes × 2 threads)
+    \item \textbf{OpenMP-heavy:} Fewer processes, more threads per process (e.g., 2 processes × 8 threads)  
+    \item \textbf{Balanced:} Equal distribution (e.g., 4 processes × 4 threads)
+\end{itemize}
+
+This configurability allows performance tuning based on problem characteristics and hardware topology, demonstrating practical application of parallel programming trade-offs discussed in course materials.
+
+The hybrid implementation showcases how multiple parallelization paradigms can be systematically combined, providing a comprehensive application of methodologies to constraint satisfaction problems.
