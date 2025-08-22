@@ -3,26 +3,20 @@
 
 We implement the sequential algorithm described by Şen and Diner \cite{Sen2024Futoshiki} and develop three distinct parallel approaches. Our methodology follows a systematic progression: first implementing their list coloring-based sequential solver, then developing MPI, OpenMP, and hybrid parallelizations that leverage distributed-memory, shared-memory, and combined paradigms respectively.
 
-The implementation translates their theoretical constraint propagation approach into working code, then systematically explores three parallelization paradigms: distributed-memory (MPI), shared-memory (OpenMP), and hybrid approaches applied to the resulting backtracking search problem.
-
-\subsection{Sequential Algorithm Implementation}
-\label{subsec:paper_implementation}
-We begin by implementing the sequential algorithm described in the chosen paper. Their approach transforms Futoshiki into a list coloring problem, enabling constraint propagation to reduce the search space before applying backtracking.
-
 \subsection{Sequential Algorithm Implementation}
 \label{subsec:paper_implementation}
 We implement the list coloring transformation detailed by Şen and Diner \cite{Sen2024Futoshiki}. Translating their theoretical approach into working code required several key implementation decisions that significantly impact the subsequent parallelization strategies.
 
 \subsubsection{Pre-coloring: Search Space Reduction}
 \label{subsubsec:precoloring}
-The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "possible color list" (pc\_list) for each cell through iterative constraint propagation:
+The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "possible color list" (\texttt{pc\_list}) for each cell through iterative constraint propagation:
 
 \begin{enumerate}
-    \item \textbf{Initialization:} Empty cells receive pc\_lists containing all values 1 to N. Pre-filled cells contain only their given value.
+    \item \textbf{Initialization:} Empty cells receive \texttt{pc\_lists} containing all values 1 to N. Pre-filled cells contain only their given value.
     
-    \item \textbf{Inequality Filtering:} The \texttt{filter\_possible\_colors} function removes values that violate inequality constraints. For instance, if cell A $>$ cell B and A's pc\_list = \{1, 2\}, then B cannot contain values $<$ 2.
+    \item \textbf{Inequality Filtering:} The \texttt{filter\_possible\_colors} function removes values that violate inequality constraints. For instance, if cell A $>$ cell B and A's \texttt{pc\_list} = \{1, 2\}, then B cannot contain values $<$ 2.
     
-    \item \textbf{Uniqueness Propagation:} When a cell's pc\_list reduces to a single value, \texttt{process\_uniqueness} removes that value from all other cells in the same row and column. To continue with our example, as B can have value 1 and 2, and as A can have $n < 2$, it would mean that A is going to hold 1 as it is the only integer strictly lower than 2, and B therefore would hold 2, as its pc\_list had two values and we need to respect the \textit{Latin Square} property.
+    \item \textbf{Uniqueness Propagation:} When a cell's \texttt{pc\_list} reduces to a single value, \texttt{process\_uniqueness} removes that value from all other cells in the same row and column. To continue with our example, as B can have value 1 and 2, and as A can have $n < 2$, it would mean that A is going to hold 1 as it is the only integer strictly lower than 2, and B therefore would hold 2, as its pc\_list had two values and we need to respect the \textit{Latin Square} property.
     
     \item \textbf{Iteration:} The previous two steps repeat until no further reductions occur, ensuring maximal constraint propagation.
 \end{enumerate}
@@ -71,7 +65,7 @@ The implementation explores only values in each cell's reduced \texttt{pc\_list}
 
 \subsection{Parallelization Strategy}
 \label{subsec:parallel_implementation}
-The sequential implementation reveals parallelization opportunities in the backtracking phase. Since constraint propagation completes quickly in polynomial time, we focus on parallelizing the exponential backtracking search, following Amdahl's Law \cite{ahmdals_law} principles by targeting the computationally dominant phase.
+The sequential implementation reveals parallelization opportunities in the backtracking phase. Since constraint propagation completes quickly in polynomial time, we focus on parallelizing the exponential backtracking search, following Amdahl's Law principles \cite{ahmdals_law} by targeting the computationally dominant phase.
 
 All three parallel implementations share a common challenge: how to distribute the irregular search tree effectively across available workers. We address this through a dynamic work generation framework that creates appropriate work units based on available parallelism.
 
