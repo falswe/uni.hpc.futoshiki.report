@@ -24,7 +24,7 @@ The pre-coloring phase, implemented in \texttt{compute\_pc\_lists}, computes a "
 This implementation typically achieves the 70-90\% search space reduction reported in the paper, creating the foundation for effective parallelization.
 
 \subsubsection{Backtracking Implementation}
-\label{subsubsec:backtrack_with_csp}
+\label{subsubsec:backtrack}
 The core solving algorithm translates the paper's constrained search into the recursive function \texttt{seq\_color\_g}:
 
 \begin{lstlisting}[language=C, caption=Sequential backtracking implementation, label={listing:seq_implementation}]
@@ -101,7 +101,7 @@ The algorithm explores progressively deeper levels of the search tree until gene
 \subsubsection{MPI Implementation: Master-Worker Pattern}
 \label{subsubsec:mpi_implementation}
 For distributed-memory parallelization, we implemented a master-worker paradigm suitable for cluster environments. The design applies core message-passing principles:
-\begin{enumerate}
+
 \textbf{Master Process (Rank 0):}
 \begin{itemize}
     \item Performs precoloring and fills out a basic version of the puzzle
@@ -216,12 +216,12 @@ The analysis focuses on the core parallel loop where tasks process work units co
 \textbf{Memory} & \multicolumn{2}{c}{\textbf{Earlier Statement}} & \multicolumn{2}{c}{\textbf{Later Statement}} & \textbf{Loop} & \textbf{Dependency} \\
 \textbf{Location} & \textbf{Line} & \textbf{Access} & \textbf{Line} & \textbf{Access} & \textbf{Carried?} & \textbf{Type} \\
 \midrule
-found\_solution & 43 & read & 44 & write & ✗ & anti \\
-found\_solution & 44 & write & 29 & read & ✓ & flow \\
-found\_solution & 44 & write & 32 & read & ✓ & flow \\
-found\_solution & 44 & write & 43 & read & ✓ & flow \\
-found\_solution & 44 & write & 44 & write & ✓ & output \\
-solution & 45 & write & 45 & write & ✓ & output \\
+found\_solution & 43 & read & 44 & write & No & anti \\
+found\_solution & 44 & write & 29 & read & Yes & flow \\
+found\_solution & 44 & write & 32 & read & Yes & flow \\
+found\_solution & 44 & write & 43 & read & Yes & flow \\
+found\_solution & 44 & write & 44 & write & Yes & output \\
+solution & 45 & write & 45 & write & Yes & output \\
 \bottomrule
 \end{tabular}
 \end{center}
