@@ -1,9 +1,13 @@
 \section{Experimental Evaluation}
 \label{sec:evaluation}
 
-In this section we are going to present the results gotten from our experimental evaluation.
+In this section we are going to present the results gotten from our experimental evaluation. We start off by giving a brief overview of how we can(not) determine the complexity of a Futoshiki problem instance a priori in \Cref{subsec:futoshiki_difficulty}, we then move onto presenting the actual HW used to perform such tests in \Cref{subsec:experimental_setup}. 
 
-\sd{quando hai definito i paragrafi linkali}
+We then present some common ground strategies used across every problem that we have run: Precoloring in \Cref{subsec:precoloring_performance} and Factor \Cref{subsec:factor}.
+
+We move towards presenting our parallel solutions in \Cref{subsec:parallel_performance_analysis}, starting with MPI and OMP in \Cref{subsubsec:solving_times_mpi_omp}, we give an overview of the Speedup and Efficiency of our solution in \Cref{subsubsec:speedup_efficiency} and finally we present the results for our Hybrid implementation in \Cref{subsubsec:hybrid_results}.
+
+We wrap up the section by performing the strong scalability analysis in \Cref{subsec:scalability}: MPI first in \Cref{subsubsec:mpi_scalability}, then OMP in \Cref{subsubsec:omp_scalability} and finally Hybrid one in \Cref{subsubsec:hybrid_scalability}.
 
 
 In order to get the reader accustomed with what we are evaluating, we present only a subset of the whole family of instances that we have evaluated for this project. We specifically center our focus towards a 9x9 instance, so that the reader can understand how different solutions compare given the same problem to solve. In case you are more interested, you can find more plots in our Google Drive Folder \cite{drive}.
@@ -19,7 +23,8 @@ To wrap up this consideration, we can safely say that if we are only given numbe
 For this reason the \textit{Weak Scalability analysis} cannot be performed in our specific case, because in order to devise the entries for which we evaluate we cannot just say 5x5, ... 9x9, 10x10 and so on, as they are not the only discriminant factor.
 
 \subsection{Experimental Setup}
-We now move onto some first consideration on the underlying Hardware, to have an idea of what the numbers that we are going to see actuallyh mean.
+\label{subsec:experimental_setup}
+We now move onto some first consideration on the underlying Hardware, to have an idea of what the numbers that we are going to see actually mean.
 
 All experiments were conducted on a high-performance computing cluster with the following specifications:
 \begin{itemize}
@@ -44,6 +49,7 @@ As we have already discussed in \Cref{subsubsec:precoloring}, the precoloring pr
 This figure lets us understand that by employing this technique we can see up to 54x speedup, like in the case of the instance \textit{9x9\_hard\_3}. This means that even if we have a little bit of overhead to apply the list coloring solution, we can still see great improvements over the baseline. For this reason we chose to employ precoloring on all of the following case studies, so that we both reduce the amount of variables in our comparison while introducing several fold speedup in our proposed solution.
 
 \subsection{What the factor are we talking about?}
+\label{subsec:factor}
 We have already mentioned that our solutions have a parameter presented as \textit{Configurable Factor}. We said that this factor lets us tweak the ratio between the jobs being scheduled and the underlying computational unit(either a thread for the OpenMP case, or a CPU for the MPI one). From an high level point of view we can think it as a knob that lets us choose at our will the amount of "pressure" that we are putting the underlying system in.
 
 From a more formal point of view, given a factor F and the number of underlying computational units C, our preprocessing algorithm aims at going deeper and deeper into the search space by exploring the backtrack tree until it does not find an amount of puzzles to solve P such that:
@@ -180,7 +186,6 @@ We can make some considerations here:
     \item MPI is strictly dominating the OMP efficiency plot, and this tells us that MPI overhead due to the shared memory access is higher than the message passing approach used by MPI, which is fairly interesting.
     \item We see a degradation in efficiency for MPi with 2 CUs. This is due to the fact that for MPI with 2 workers we are basically running the sequential under the hood: 1 master and 1 slave with the MPI message passing overhead, so it is perfectly expected.
 \end{enumerate}
-\sd{we can say in future works play with factor to see how to maximize efficiency of solution which is good!}
 
 \begin{figure}[htbp]
 \centering
@@ -241,7 +246,6 @@ We now move onto the last metric, it being the \textit{Efficiency}. From \Cref{f
     \item There is a strict trend in this case: as the number of computational units increase, the overall efficiency decreases. This is expected as the more Computational units we have, the less each one is contributing towards the final result w.r.t the solving time. It would be interesting to play around with the factor to overload more the computational units to see how the efficiency performs.
     \item As the efficiency value is basically a mirror over the speedup, as we have seen that the speedup was not on the same level as the speedup for the classic solutions, we were actually expecting that the efficiency would decline as the computational units increase.
 \end{itemize}
-\sd{factor play for efficiency}
 
 
 \begin{figure}[htbp]
@@ -350,4 +354,3 @@ The hybrid solver demonstrates superior scalability by combining both paradigms:
 
 
 Here we presented the hybrid solution by increasing first the threads. We can see how the efficiency overall reduces due to the MPI and OMP overhead, which means that the synchronization overhead basically compounds as the number of computational units increase. Overall this table shows how we can still achieve high performances increase, but at the cost of a worse efficiency, which would suggests us that the best setting if we want to maximize this metric is the MPI solution.
-\sd{MPI best for efficiency purposes}

@@ -6,8 +6,9 @@ We start in \Cref{subsec:csp} by giving an explanation of the Constraint Satisfa
 
 \subsection{Constraint Satisfaction and Propagation}
 \label{subsec:csp}
-The foundation of our approach lies in constraint propagation techniques: After Adamu-Fika showed in \cite{sudoku_csp} that it is possible to transform Sudoku leveraging CSP, Norvig's work on Sudoku solving \cite{NorvigSudoku} demonstrated the power of constraint propagation combined with search, achieving several fold speedups over naive backtracking. Our pre-coloring phase extends these ideas specifically for Futoshiki's inequality constraints.
-\sd{here we say reduction of search space in polynomial time blablabla}
+The foundation of our approach lies in constraint propagation techniques: After Adamu-Fika showed in \cite{sudoku_csp} that it is possible to transform Sudoku leveraging CSP, Norvig's work on Sudoku solving \cite{NorvigSudoku} demonstrated the power of constraint propagation combined with search, achieving several fold speedups over naive backtracking. Our pre-coloring phase extends these ideas specifically for Futoshiki's inequality constraints. The main reason behind performing such step is that, while it does not directly reduce the complexity of the solving part (which is still NP hard), what it does is reduce by a significant factor the search space in polynomial time. 
+
+This means that, given a search space, we can in polynomial time remove a plethora of branches from the backtracking approach that our solving part employs, therefore decreasing by a whole lot the total execution time.
 
 The transformation of Futoshiki into a list coloring problem, as proposed by Şen and Diner \cite{Sen2024Futoshiki}, provides the theoretical foundation for our implementation. Their work showed that viewing the puzzle through the lens of graph coloring enables more sophisticated pruning strategies compared to naive backtracking strategies. 
 

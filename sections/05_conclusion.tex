@@ -26,15 +26,6 @@ Our implementation achieves significant performance improvements at multiple lev
 \end{enumerate}
 
 
-Overall we can therefore say that the speedup performed by the list coloring algorithm in order to precolor the solution is extremely important, that in our evaluated instance MPI outperforms OMP and the hybrid solution, while at times it introduces some overhead due to the message passing and shared memory synchronization, therefore decrementing the efficiency at higher computational units selected, still serves as a fairly interesting solution due to its extreme configurability. This does not mean that the OMP solution is bad as a whole, what we are stating is that the other two solutions outperform it, but still is an extremely useful entrypoint due to its ease of implementation, as it requires little work to transform some sequential algorithms to parallel ones.
+Overall we can therefore say that the speedup performed by the list coloring algorithm in order to precolor the solution is extremely important, that in our evaluated instance MPI outperforms OMP and the hybrid solution, while at times it introduces some overhead due to the message passing and shared memory synchronization, therefore decrementing the efficiency at higher computational units selected, still serves as a fairly interesting solution due to its extreme configuratbility. This does not mean that the OMP solution is bad as a whole, what we are stating is that the other two solutions outperform it, but still is an extremely useful entry point due to its ease of implementation, as it requires little work to transform some sequential algorithms to parallel ones.
 
-
-\subsection{Technical Contributions}
-Beyond solving Futoshiki puzzles, our work makes several contributions to parallel computing for constraint satisfaction problems:
-
-\begin{itemize}
-    \item \textbf{Modular Design:} The separation of work generation, distribution, and solving enables easy adaptation to other CSP problems
-    \item \textbf{Scalability Analysis:} Comprehensive evaluation of strong and weak scaling provides insights into parallel efficiency limits
-    \item \textbf{Hybrid Methodology:} Demonstrates effective combination of MPI and OpenMP for irregular workloads
-    \item \textbf{Performance Portability:} Implementation runs efficiently from single-core laptops to large HPC clusters
-\end{itemize}
+Other than the Futoshiki instance itself, one could easily see how this can be adapted to a Sudoku Solver, a generalized version for Graph Coloring, Scheduling problems and of course, even with some overhead to convert the problem instance, also for general SAT solving or SMT solving strategies.

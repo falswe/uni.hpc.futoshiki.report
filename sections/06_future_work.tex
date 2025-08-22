@@ -9,64 +9,20 @@ There are still some areas to explore in order to shed some light into. Here are
     \item \textbf{Variable Ordering Heuristics:} Implement most-constrained-variable (MCV) and minimum-remaining-values (MRV) heuristics to select cells more intelligently during backtracking.
     
     \item \textbf{Arc Consistency:} Extend constraint propagation to AC-3 or higher levels of consistency for more aggressive pruning.
-    \sd{dunno what this is}
+    \sd{dunno what this is, maybe we can remove}
     
-    \item \textbf{Optimizing search space reduction:} We have seen how the precoloring algorithm already does some of the heavy lifting when it comes to reducing the search space, but there are still some techniques which can be applied. The first one would be to  Implement \textit{clause learning} to avoid redundant exploration of similar subtrees, which can happen quite frequently considering the class of search space. The latter technique is the \textit{Symmetry Breaking}, which conceptually is similar to the Symmetry Breaking (as of we aim to remove some common pattern
+    \item \textbf{Optimizing search space reduction:} We have seen how the precoloring algorithm already does some of the heavy lifting when it comes to reducing the search space, but there are still some techniques which can be applied. The first one would be to  Implement \textit{clause learning} to avoid redundant exploration of similar subtrees, which can happen quite frequently considering the class of search space. The latter technique is the \textit{Symmetry Breaking}, which conceptually is similar to the Symmetry Breaking (as of we aim to remove already found patterns).
     
-    \item \textbf{Symmetry Breaking:} Detect and eliminate symmetric solutions to reduce the search space further.
+    \item \textbf{Parameter tweaking}: We have seen how the Hybrid configuration enables some configuratbility by defining how much the solution can rely on MPI or OMP, we can therefore move in this direction to tweak these parameters and see how hybrid solution works in different scenarios.
+
+    Another \textit{factor }to play around with is the configuration factor itself. As it determines the amount of over subscription, playing around with this value could lead to interesting findings in its relation with the \textit{efficiency}.
+    \sd{maybe?}
+    \item \textbf{Reducing communication overhead} via non-blocking MPI message passing strategies, which would lead to a decrease of idle-time in the single CPUs.
+
+    \item \textbf{A new metric}: we have stated that it is not easy to determine the complexity of a problem based on single variables alone (e.g. size, number of constraints, etc). As this goes beyond the scope of exploring the parallelization of this problem, we have still decided to include this bullet point as by finding a single metric which takes into account all of the variables of the problem in one go, one could design a configuration finder such that, given the puzzle, it would find the best configuration(either in the hybrid zone, or just picking OMP or MPI for some specific tasks) to enhance the performance of the whole solution.
+
+    \item \textbf{Distributed Precoloring}: while we have stated that due to the law of deminishing returns it does not make much sense to distribute the first precoloring phase, given a huge search space the overhead of parallelizing also this problem could be a smaller factor compared to the time taken for our current sequential precoloring algorithm, so this might be worth exploring in the future.
+    \item \textbf{More dynamic structure}: by collecting runtime data, one could implement a more dynamic work distribution.
 \end{itemize}
 
-\subsection{Parallel Computing Extensions}
-\begin{itemize}
-    \item \textbf{GPU Acceleration:} Develop CUDA implementation for massively parallel constraint checking and propagation. GPUs could accelerate the pre-coloring phase and enable parallel exploration of multiple search paths.
-    
-    \item \textbf{Work Stealing:} Replace static work distribution with dynamic work stealing to better handle irregular workloads and heterogeneous systems.
-    
-    \item \textbf{Asynchronous Communication:} Implement non-blocking MPI communication to overlap computation with data transfer.
-    
-    \item \textbf{Hierarchical Parallelism:} Explore three-level parallelism: MPI across nodes, OpenMP across cores, and SIMD vectorization within cores.
-\end{itemize}
-
-\subsection{Scalability Improvements}
-\begin{itemize}
-    \item \textbf{Distributed Pre-coloring:} Parallelize the constraint propagation phase, which currently runs redundantly on all processes.
-    
-    \item \textbf{Adaptive Granularity:} Dynamically adjust work unit size based on runtime performance metrics.
-    
-    \item \textbf{Fault Tolerance:} Implement checkpointing and recovery mechanisms for long-running computations on large clusters.
-    
-    \item \textbf{Cloud Deployment:} Adapt the solver for cloud environments with auto-scaling and spot instance support.
-\end{itemize}
-
-\subsection{Application to Other Problems}
-\begin{itemize}
-    \item \textbf{Sudoku Variants:} Extend to Sudoku, Killer Sudoku, and other Latin Square completion puzzles.
-    
-    \item \textbf{Graph Coloring:} Generalize the framework for arbitrary graph coloring problems.
-    
-    \item \textbf{Scheduling Problems:} Apply to real-world scheduling with additional constraints (time windows, precedence, resources).
-    
-    \item \textbf{SAT Solving:} Adapt the parallel framework for Boolean satisfiability problems.
-\end{itemize}
-
-\subsection{Machine Learning Integration}
-\begin{itemize}
-    \item \textbf{Learned Heuristics:} Train neural networks to predict promising search directions based on puzzle features.
-    
-    \item \textbf{Reinforcement Learning:} Use RL to optimize work distribution and load balancing strategies.
-    
-    \item \textbf{Pattern Recognition:} Identify common substructures that can be solved independently and cached.
-\end{itemize}
-
-\subsection{Software Engineering}
-\begin{itemize}
-    \item \textbf{Library Development:} Package the framework as a reusable library for constraint satisfaction problems.
-    
-    \item \textbf{Automatic Parallelization:} Develop compiler techniques to automatically parallelize constraint solvers.
-    
-    \item \textbf{Performance Modeling:} Create analytical models to predict performance on different architectures.
-    
-    \item \textbf{Visualization Tools:} Build interactive tools to visualize the search process and parallel execution.
-\end{itemize}
-
-These extensions would further improve performance, broaden applicability, and make the framework more accessible to researchers and practitioners working on constraint satisfaction problems.
+These extensions would further improve performance, increment the applicability area of our solution, and make the framework more accessible to researchers working on constraint satisfaction problems or instances which can be easily reduced to CSPs.
