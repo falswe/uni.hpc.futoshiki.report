@@ -8,7 +8,7 @@ We have to note that when gathering data from the runs, we have noticed some dis
 Our implementation achieves significant performance improvements at multiple levels:
 
 \begin{enumerate}
-    \item \textbf{Algorithmic Optimization:} The pre-coloring phase, based on list coloring theory, reduces the search space by 70-90\%, providing a 59× speedup over naive backtracking. This optimization is crucial for making puzzles which have a bigger search space tractable also with a sequential solution.
+    \item \textbf{Algorithmic Optimization:} We have seen that pre-coloring phase, based on list coloring theory, reduces the search space by 70-90\%, providing a 59× speedup over naive backtracking. This optimization is crucial for making puzzles which have a bigger search space tractable also with a sequential solution, and therefore we opted to apply in every subsequent experiment.
     
     \item \textbf{Parallel Scalability:} We successfully parallelized the solver using three distinct paradigms. Here are the execution time findings:
     \begin{itemize}
@@ -21,7 +21,13 @@ Our implementation achieves significant performance improvements at multiple lev
     \sd{this seems too vague but idk what to say}
     
     \item \textbf{Configurable Performance:} The task generation factor allows fine-tuning for specific hardware configurations and puzzle characteristics, with 64 factor leading up to \textbf{3.5x} speedup over the baseline (factor set to 1, which means we are not oversubscribing anything).
+
+    \item \textbf{Scalability Analysis}: the Strong analysis lead us to understanding that MPI achieves almost linear speedups and retains higher efficiency, making it the best solution if we are aiming at maximizing that parameter. We have also seen that, due to the fact that it is hard to determine a priori how complex a puzzle can be to solve given only its size, it does not make sense to proceed with the Weak scalability analysis.
 \end{enumerate}
+
+
+Overall we can therefore say that the speedup performed by the list coloring algorithm in order to precolor the solution is extremely important, that in our evaluated instance MPI outperforms OMP and the hybrid solution, while at times it introduces some overhead due to the message passing and shared memory synchronization, therefore decrementing the efficiency at higher computational units selected, still serves as a fairly interesting solution due to its extreme configurability. This does not mean that the OMP solution is bad as a whole, what we are stating is that the other two solutions outperform it, but still is an extremely useful entrypoint due to its ease of implementation, as it requires little work to transform some sequential algorithms to parallel ones.
+
 
 \subsection{Technical Contributions}
 Beyond solving Futoshiki puzzles, our work makes several contributions to parallel computing for constraint satisfaction problems:
