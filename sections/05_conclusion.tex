@@ -2,10 +2,13 @@
 \label{sec:conclusion}
 We presented a comprehensive high-performance computing implementation for solving the Futoshiki puzzle, demonstrating the feasibility of solving an instance of an NP-hard by employing several different techniques, starting from the search space reduction via precoloring, and later on moving towards MPI, OMP and Hybrid solutions.
 
-We have to note that when gathering data from the runs, we have noticed some discrepancies w.r.t. the execution times, and this is most likely dependent from the fact that older machine with the same node category (c-nodes) might have different hardware, or there is some wear and tear damage performed. Another factor is also due to the fact that the scheduler and the timing of when some jobs are scheduled might incur in some variance over the expected finishing time of our solutions.
+
+We have to note that when gathering data from the runs, we have noticed some discrepancies w.r.t. the execution times, and this is most likely dependent from the fact that older machine with the same node category (c-nodes) might have different hardware, or there is some wear and tear damage performed. Another factor is also due to the fact that the scheduler and the timing of when some jobs are scheduled might incur in some variance over the expected finishing time of our solutions. 
+
+We have also noted that there were some differences in the time required to get results since the changes done in august to the hpc, which caused some processes which were able to finish before this update was rolled out to not finish at times.
 
 \subsection{Key Achievements}
-Our implementation achieves significant performance improvements at multiple levels:
+Our implementation achieves significant performance improvements at multiple levels:. As always, we are evaluating those results in the specific instance proposed in the evaluation section, so these numbers are for this case, but they shall serve as a rule of thumb for how much the speedup can be.
 
 \begin{enumerate}
     \item \textbf{Algorithmic Optimization:} We have seen that pre-coloring phase, based on list coloring theory, reduces the search space by 70-90\%, providing a 59× speedup over naive backtracking. This optimization is crucial for making puzzles which have a bigger search space tractable also with a sequential solution, and therefore we opted to apply in every subsequent experiment.
@@ -16,9 +19,6 @@ Our implementation achieves significant performance improvements at multiple lev
         \item \textbf{MPI} demonstrates 123× speedup when using 128 processes. From our Speedup analysis it also slightly beat the OMP solution and therefore was also the best for the efficiency parameter. This means that, while the OMP solution is the easier one to implement compared to the MPI version, it also suffers more from memory contention and mutex or lock-like structures needed to perform syanchronization.
         \item \textbf{Hybrid MPI+OpenMP} reaches 60.4× speedup when using 32 CPUs and 8 threads, which showcases how leveraging MPI is actually the best solution compared to the other hybrid configurations. This was expected as the MPI only solution is already slightly better than OMP. An interesting finding is that while the Hybrid does not perform as good as the MPI only overall, there are still cases in which its configurability can lead to better results compared to our test under analysis.
     \end{itemize}
-    
-    \item \textbf{Dynamic Work Generation:} Our unified framework automatically adjusts work unit granularity based on available parallelism, ensuring efficient resource utilization across different scales and architectures.
-    \sd{this seems too vague but idk what to say}
     
     \item \textbf{Configurable Performance:} The task generation factor allows fine-tuning for specific hardware configurations and puzzle characteristics, with 64 factor leading up to \textbf{3.5x} speedup over the baseline (factor set to 1, which means we are not oversubscribing anything).
 

@@ -100,7 +100,6 @@ stefano.dalmas@studenti.unitn.it}
 
 \begin{abstract}
 
-\sd{this has to contain values from validation}
 The Futoshiki puzzle, an NP-Complete variant of the Latin Square Completion Problem, presents significant computational challenges that depend not only on grid size but also on constraint placement and density. Building upon the list coloring approach proposed by Şen and Diner \cite{Sen2024Futoshiki}, this work presents a parallel computing framework for solving Futoshiki puzzles. We first implement their sequential algorithm that uses constraint propagation to reduce search space, then develop three distinct parallel implementations: (1) MPI distributed-memory solver with dynamic master-worker load balancing, (2) OpenMP shared-memory solver using task-based parallelism, and (3) hybrid MPI+OpenMP solver that combines both paradigms for enhanced scalability. Our adaptive work generation algorithm dynamically adjusts parallelism granularity based on available resources and puzzle characteristics. Experimental evaluation on an HPC cluster demonstrates that constraint propagation provides substantial speedup over naive backtracking, while our parallel implementations show distinct performance characteristics: single-paradigm solutions excel within their resource domains, whereas the hybrid approach enables scaling to larger core counts with performance dependent on task factor tuning and puzzle characteristics.
 \end{abstract}
 
