@@ -12,10 +12,14 @@ We wrap up the section by performing the strong scalability analysis in \Cref{su
 
 In order to get the reader accustomed with what we are evaluating, we present only a subset of the whole family of instances that we have evaluated for this project. We specifically center our focus towards a 9x9 instance, so that the reader can understand how different solutions compare given the same problem to solve. In case you are more interested, you can find more plots in our Google Drive Folder \cite{drive}.
 
+As we have chosen to show only a specific 9x9 in order to not let the reader get confused with the parameters under which we are showcasing our solution performs, the conclusion we are going to track are relative to this instance. As we are going to see that stating the difficulty of an instance \textit{a priori} is an hard task, findings for our 9x9 instance might not hold for another 9x9 instance. Let's say we are finding that MPI in this case outperforms the hybrid solution: this does not mean that the MPI is better \textit{overall}, but that for the specific instance considered it is better and might be worse in another instance of the problem. If we wanted to have an omni comprehensive study this would require to analyze each instance on its own, which would imply analyzing the results for each problem instance. This does not mean that the analysis is useless, instead this shall serve as a rule of thumb to showcase the capabilities when taking into account the parallelization of Futoshiki solvers. 
+
+If the reader is interested in seeing how the solution performs under different instances, but without having a detailed analysis, he can find some extra results in the aforementioned drive folder.
+
 
 \subsection{Can we evaluate difficulty of a Futoshiki before solving it?}
 \label{subsec:futoshiki_difficulty}
-It is important to stop for a moment and assess a crucial factor: as we have already explained in \Cref{subsec:backtrack} how Futoshiki has dynamic placed constraints, which in turn implies that the assumption we can make on the input are less strict w.r.t. Sudoku. This means that by receiving as input only the number of constraints, without knowing whey they are placed and how they are intertwined one to another, it is extremely hard to define the actual "difficulty" of the problem. It is easy to see that with a simple manipulation of the constraints presented in \Cref{fig:futoshiki_example}, one could not have easily understood the chain between values 1-4. Another factor to take into account is where the initial numbers are placed and how many we have. It is true as the number of constraints that we have increases, the more variables we can fix and therefore the less big the search spaces becomes, but if those constraints are placed in a "bad way", one could not find the solution easily.
+It is important to stop for a moment and assess a crucial factor: as we have already explained in \Cref{subsubsec:backtrack} how Futoshiki has dynamic placed constraints, which in turn implies that the assumption we can make on the input are less strict w.r.t. Sudoku. This means that by receiving as input only the number of constraints, without knowing where they are placed and how they are intertwined one to another, it is extremely hard to define the actual "difficulty" of the problem. It is easy to see that with a simple manipulation of the constraints presented in \Cref{fig:futoshiki_example}, one could not have easily understood the chain between values 1-4. Another factor to take into account is where the initial numbers are placed and how many we have. It is true as the number of constraints that we have increases, the more variables we can fix and therefore the less big the search spaces becomes, but if those constraints are placed in a "bad way", one could not find the solution easily.
 
 We can also say that the "size matters" in this case it not strictly true. One could imagine a puzzle of a specific size and one of a slightly bigger size: let's say 9x9 and 10x10. Given those as inputs, as the correlation among constraint is so important that just like for the amount of numbers placed, they might not lead to an "easier" or "harder" puzzle by default.
 To wrap up this consideration, we can safely say that if we are only given number of constraints, number of initialized cells and size of the problem it is not possible to give a precise estimate over a metric to evaluate the "difficulty" of the problem.
@@ -50,7 +54,7 @@ This figure lets us understand that by employing this technique we can see up to
 
 \subsection{What the factor are we talking about?}
 \label{subsec:factor}
-We have already mentioned that our solutions have a parameter presented as \textit{Configurable Factor}. We said that this factor lets us tweak the ratio between the jobs being scheduled and the underlying computational unit(either a thread for the OpenMP case, or a CPU for the MPI one). From an high level point of view we can think it as a knob that lets us choose at our will the amount of "pressure" that we are putting the underlying system in.
+We have already mentioned that our solutions have a parameter presented as \textit{Configurable Factor}. We said that this factor lets us tweak the ratio between the jobs being scheduled and the underlying computational unit (either a thread for the OpenMP case, or a CPU for the MPI one). From an high level point of view we can think it as a knob that lets us choose at our will the amount of "pressure" that we are putting the underlying system in.
 
 From a more formal point of view, given a factor F and the number of underlying computational units C, our preprocessing algorithm aims at going deeper and deeper into the search space by exploring the backtrack tree until it does not find an amount of puzzles to solve P such that:
 \[
@@ -136,6 +140,15 @@ This is very interesting, because by looking at the absolute value of the solvin
 
 For such reasons, we are going to move to analyze only the family of 9x9 instances, as they are more interesting and actually give us some interesting data and points to reason about w.r.t. just saying "for the 10x10 instance we have a degradation in performance".
 
+We have decided to insert an image of the Futoshiki problem taken into consideration, which is the 9x9\_hard\_2 and it can be seen in \Cref{fig:9x9_img}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{imgs/9x9_hard_2_puzzle.png}
+\caption{Our problem instance taken into consideration for evaluation purposes.}
+\label{fig:9x9_img}
+\end{figure}
+
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\linewidth]{imgs/solving_time_mpi_omp_10x10_65.pdf}
@@ -177,7 +190,7 @@ We can now move into the second metric that we can use to evaluate our parallel 
 E = \frac{Speedup}{\# computational\_units}
 \]
 
-This parameter is basically relating the speedup(how well the parallel solution is w.r.t. the sequential one) with the number of units available. This parameter is therefore going to tell us how well the available cores are being used.
+This parameter is basically relating the speedup (how well the parallel solution is w.r.t. the sequential one) with the number of units available. This parameter is therefore going to tell us how well the available cores are being used.
 
 \Cref{fig:efficiency_9x9} we can see how efficiency is evaluated in our solutions. 
 
@@ -210,7 +223,7 @@ This is what we are trying to answer with \Cref{fig:solving_time_hybrid_9x9}. We
 
 We can take several notes:
 \begin{itemize}
-    \item As expected, as the number of CU increase, as expected, the solving time reduces.
+    \item As expected, as the number of CU increase the solving time reduces.
     \item The sweet spot to get a performance increase lies in the 8-32 zone and after that for the law of diminishing returns we can see that actually we are not improving by a lot in terms of absolute values.
     \item we can see how actually the choice of relying on one or another one does not influence too much the overall execution time if the number of units increase, no matter whether they are threads or cpus.
     \item We can see an outlier with MPI Heavy and 2 Computational units. This is due to the fact that we are running the sequential solution under the hood with the overhead of message passing from MPI.
@@ -227,7 +240,7 @@ We can now move onto the comparison among hybrid and sequential, just like we di
 
 Also here we can draw some conclusions:
 \begin{itemize}
-    \item The overall speedup is not as close as the ideal one just like for the MPI and OMP only cases. This is actually expected, as we have seen how the overhead added from the underlying technology(locks to access shared memory in OMP, waiting algorithms used in MPI solution to sync messages) actually add an overhead, and the more computational units we have, the more they compound.
+    \item The overall speedup is not as close as the ideal one just like for the MPI and OMP only cases. This is actually expected, as we have seen how the overhead added from the underlying technology (locks to access shared memory in OMP, waiting algorithms used in MPI solution to sync messages) actually add an overhead, and the more computational units we have, the more they compound.
     \item We can see that up to 128 computational units the OMP heavy solution has a little bit more of an advantage compares to the other ones, but at 256 the MPI heavy solution surpasses the other ones (which can also mean, it does not degrade as much as the other ones).
 \end{itemize}
 
@@ -286,7 +299,7 @@ Table \ref{tab:mpi_scaling} presents MPI performance across multiple nodes:
 \end{table}
 
 
-MPI shows a "quasi linear" scaling in speedup terms. We see how with 1 and 2 the execution time is practically the same(minus noise given by underlying hardware, scheduling of resources, etc), but then it quickly reduces. We can see how the overall efficiency values are higher than OMP, suggesting that MPI is better suited to stress the underlying hardware, which is exactly what we have seen in \Cref{fig:efficiency_9x9}.
+MPI shows a "quasi linear" scaling in speedup terms. We see how with 1 and 2 the execution time is practically the same (minus noise given by underlying hardware, scheduling of resources, etc), but then it quickly reduces. We can see how the overall efficiency values are higher than OMP, suggesting that MPI is better suited to stress the underlying hardware, which is exactly what we have seen in \Cref{fig:efficiency_9x9}.
 
 \subsubsection{OpenMP Scalability}
 \label{subsubsec:omp_scalability}
