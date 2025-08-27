@@ -4,22 +4,17 @@ During the course of this report we have presented how our framework compares w.
 
 There are still some areas to explore in order to shed some light into. Here are presented in a bullet point fashion:
 
-\subsection{Algorithmic Enhancements}
 \begin{itemize}
     \item \textbf{Variable Ordering Heuristics:} Implement most-constrained-variable (MCV) and minimum-remaining-values (MRV) heuristics to select cells more intelligently during backtracking.
     
-    \item \textbf{Arc Consistency:} Extend constraint propagation to AC-3 or higher levels of consistency for more aggressive pruning.
-    \sd{dunno what this is, maybe we can remove}
-    
-    \item \textbf{Optimizing search space reduction:} We have seen how the precoloring algorithm already does some of the heavy lifting when it comes to reducing the search space, but there are still some techniques which can be applied. The first one would be to  Implement \textit{clause learning} to avoid redundant exploration of similar subtrees, which can happen quite frequently considering the class of search space. The latter technique is the \textit{Symmetry Breaking}, which conceptually is similar to the Symmetry Breaking (as of we aim to remove already found patterns).
+    \item \textbf{Optimizing search space reduction:} We have seen how the precoloring algorithm already does some of the heavy lifting when it comes to reducing the search space, but there are still some techniques which can be applied. The first one would be to  Implement \textit{clause learning} to avoid redundant exploration of similar subtrees, which can happen quite frequently considering the class of search space. The latter technique is the \textit{Symmetry Breaking}.
     
     \item \textbf{Parameter tweaking}: We have seen how the Hybrid configuration enables some configuratbility by defining how much the solution can rely on MPI or OMP, we can therefore move in this direction to tweak these parameters and see how hybrid solution works in different scenarios.
 
     Another \textit{factor }to play around with is the configuration factor itself. As it determines the amount of over subscription, playing around with this value could lead to interesting findings in its relation with the \textit{efficiency}.
-    \sd{maybe?}
     \item \textbf{Reducing communication overhead} via non-blocking MPI message passing strategies, which would lead to a decrease of idle-time in the single CPUs.
 
-    \item \textbf{A new metric}: we have stated that it is not easy to determine the complexity of a problem based on single variables alone (e.g. size, number of constraints, etc). As this goes beyond the scope of exploring the parallelization of this problem, we have still decided to include this bullet point as by finding a single metric which takes into account all of the variables of the problem in one go, one could design a configuration finder such that, given the puzzle, it would find the best configuration(either in the hybrid zone, or just picking OMP or MPI for some specific tasks) to enhance the performance of the whole solution.
+    \item \textbf{A new metric}: we have stated that it is not easy to determine the complexity of a problem based on single variables alone (e.g. size, number of constraints, etc). As this goes beyond the scope of exploring the parallelization of this problem, we have still decided to include this bullet point as by finding a single metric which takes into account all of the variables of the problem in one go, one could design a configuration finder such that, given the puzzle, it would find the best configuration (either in the hybrid zone, or just picking OMP or MPI for some specific tasks) to enhance the performance of the whole solution.
 
     \item \textbf{Distributed Precoloring}: while we have stated that due to the law of deminishing returns it does not make much sense to distribute the first precoloring phase, given a huge search space the overhead of parallelizing also this problem could be a smaller factor compared to the time taken for our current sequential precoloring algorithm, so this might be worth exploring in the future.
     \item \textbf{More dynamic structure}: by collecting runtime data, one could implement a more dynamic work distribution.
